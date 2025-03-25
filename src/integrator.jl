@@ -177,6 +177,7 @@ end
 
 # ---------------------------------------------------------------------------- #
 # CONSTANT TIME-STEP INTEGRATION FOR NONLINEAR EQUATIONS OR COUPLED SYSTEMS
+# TODO: add console logging options
 function _propagate!(method::AbstractMethod{Z, NormalMode},
                    stepping::TimeStepConstant,
                      system::System,

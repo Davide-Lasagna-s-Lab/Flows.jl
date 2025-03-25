@@ -98,3 +98,17 @@ returned object depend on the internal storage. For [`RAMStorage`](@ref) storage
 is a standard `Vector`.
 """
 samples(mon::Monitor) = samples(mon.store)
+
+"""
+    samples(mon::Monitor, value_index::Int)
+
+Return a single set of samples of the observable that have been stored during a trajectory,
+where the samples are stored as an iterable set of values at each step. This is most 
+typically after each time step, in addition to the initial condition. The type of the 
+returned object depend on the internal storage. For [`RAMStorage`](@ref) storages, this
+is a standard `Vector`.
+"""
+function samples(mon::Monitor, value_index::Int)
+    0 < value_index ≤ length(samples(mon)[1]) || throw(ArgumentError("Index outside of range of monitored values"))
+    return getindex.(samples(mon), value_index)
+end
