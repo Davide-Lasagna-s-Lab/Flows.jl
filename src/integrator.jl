@@ -177,7 +177,7 @@ end
 
 # ---------------------------------------------------------------------------- #
 # CONSTANT TIME-STEP INTEGRATION FOR NONLINEAR EQUATIONS OR COUPLED SYSTEMS
-# TODO: add console logging options
+# TODO: somehow add logging via some type of type interface with the monitor?
 function _propagate!(method::AbstractMethod{Z, NormalMode},
                    stepping::TimeStepConstant,
                      system::System,
@@ -192,7 +192,7 @@ function _propagate!(method::AbstractMethod{Z, NormalMode},
     # checks
     if cache isa AbstractStageCache 
         nstages(method) == nstages(cache) ||
-            throw(ArgumentError("incompatible method and stage cache "))
+            throw(ArgumentError("incompatible method and stage cache"))
     end
 
     # check span is sane
