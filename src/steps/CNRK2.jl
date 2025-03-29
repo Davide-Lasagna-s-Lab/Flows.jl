@@ -20,7 +20,7 @@ CNRK2(x::X, mode::MODE = NormalMode()) where {X, MODE<:AbstractMode} =
 function Base.deepcopy_internal(x::CNRK2,
                              dict::IdDict)
     if !( haskey(dict, x) )
-        dict[x] = CNRK2(x.store[1], mode(x))
+        dict[x] = CNRK2(x.store[1], mode(x)())
     end
     return dict[x]
 end

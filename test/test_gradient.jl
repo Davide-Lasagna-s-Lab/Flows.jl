@@ -59,6 +59,7 @@ end
     flag = 1
     IMPL = flag*A
 
+    # FIXME: sometimes these tests fail with NaN values being output
     for (METHOD, bnd, (bnd_low, bnd_upp), order) in [(CB3R2R3c, 1170, (0.34,  8.00), 3),
                                                      (CB3R2R3e,  275, (0.34,  0.55), 3),
                                                      (CB3R2R2,    44, (0.34, 21.50), 2),

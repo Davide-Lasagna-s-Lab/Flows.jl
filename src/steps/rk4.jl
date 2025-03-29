@@ -31,6 +31,7 @@ function step!(method::RK4{X, NormalMode},
     k1, k2, k3, k4, y = method.store
 
     # stages
+    # TODO: seems like there could be a better way to push to the cache than copy at each RK step
     y .= x;              sys(t,        y, k1); _iscache(C) && (s1 = copy(y))
     y .= x .+ Δt.*k1./2; sys(t + Δt/2, y, k2); _iscache(C) && (s2 = copy(y))
     y .= x .+ Δt.*k2./2; sys(t + Δt/2, y, k3); _iscache(C) && (s3 = copy(y))
@@ -49,11 +50,11 @@ end
 # Continuous time stepping for linearised/adjoint equations with interpolation
 # from an `AbstractStorage` object for the evaluation of the linear operator.
 function step!(method::RK4{X, MODE},
-               sys::System,
-               t::Real,
-               Δt::Real,
-               x::X,
-               store::AbstractStorage) where {X, MODE<:ContinuousMode}
+                  sys::System,
+                    t::Real,
+                   Δt::Real,
+                    x::X,
+                store::AbstractStorage) where {X, MODE<:ContinuousMode}
     # aliases
     k1, k2, k3, k4, k5, y = method.store
 
@@ -76,10 +77,10 @@ end
 # Forward linearised method takes x_{n} and overwrites it with x_{n+1}
 # Adjoint linearised method takes x_{n+1} and overwrites it with x_{n}
 function step!(method::RK4{X, MODE},
-               sys::System,
-               t::Real, # the time corresponding to x_{n}
-               Δt::Real,
-               x::X,
+                  sys::System,
+                    t::Real, # the time corresponding to x_{n}
+                   Δt::Real,
+                    x::X,
                stages::NTuple{4, X}) where {X, MODE<:DiscreteMode}
     # aliases
     k1, k2, k3, k4, y = method.store

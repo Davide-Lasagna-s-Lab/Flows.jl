@@ -21,7 +21,7 @@ end
 function Base.deepcopy_internal(x::CB4R3R4,
                              dict::IdDict)
     if !( haskey(dict, x) )
-        dict[x] = CB4R3R4(x.store[1], mode(x))
+        dict[x] = CB4R3R4(x.store[1], mode(x)())
     end
     return dict[x]
 end
