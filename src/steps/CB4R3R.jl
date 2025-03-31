@@ -17,15 +17,6 @@ function CB4R3R4(x::X, mode::MODE = NormalMode()) where {X, MODE<:AbstractMode}
     return CB4R3R4{X, MODE}(ntuple(i->similar(x), N))
 end
 
-# required to cope with buggy julia deepcopy implementation
-function Base.deepcopy_internal(x::CB4R3R4,
-                             dict::IdDict)
-    if !( haskey(dict, x) )
-        dict[x] = CB4R3R4(x.store[1], mode(x)())
-    end
-    return dict[x]
-end
-
 # ---------------------------------------------------------------------------- #
 # Normal time stepping with optional stage caching
 function step!(method::CB4R3R4{X},

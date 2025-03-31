@@ -13,17 +13,8 @@ end
 
 Constructs a `CNRK2` integration scheme object for integration with mode `mode`.
 """
-CNRK2(x::X, mode::MODE = NormalMode()) where {X, MODE<:AbstractMode} = 
+CNRK2(x::X, ::MODE = NormalMode()) where {X, MODE<:AbstractMode} = 
     CNRK2{X, MODE}(ntuple(i->similar(x), 5))
-
-# required to cope with buggy julia deepcopy implementation
-function Base.deepcopy_internal(x::CNRK2,
-                             dict::IdDict)
-    if !( haskey(dict, x) )
-        dict[x] = CNRK2(x.store[1], mode(x)())
-    end
-    return dict[x]
-end
 
 # ---------------------------------------------------------------------------- #
 # Normal time stepping with optional stage caching

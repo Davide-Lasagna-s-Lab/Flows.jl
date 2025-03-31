@@ -21,15 +21,6 @@ for (name, tab, NS) in zip((:CB3R2R2, :CB3R2R3e, :CB3R2R3c),
             return $name{X, MODE}(ntuple(i->similar(x), N))
         end
 
-        # required to cope with buggy julia deepcopy implementation
-        # TODO: test if deep copy method is necessary
-        function Base.deepcopy_internal(x::$name, dict::IdDict)
-            if !( haskey(dict, x) )
-                dict[x] = $name(x.store[1], mode(x)())
-            end
-            return dict[x]
-        end
-
         # ---------------------------------------------------------------------------- #
         # Normal time stepping with optional stage caching
         function step!(method::$name{X, NormalMode},
