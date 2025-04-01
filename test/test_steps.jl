@@ -37,13 +37,11 @@ import LinearAlgebra: Diagonal
         end
 
         # test allocation
-        # FIXME: fun is saying memory is being allocated when it isn't
-        function fun(g, L, scheme, Δt, x0)
-            sys = Flows.System(g, L)
-            Flows.step!(scheme, sys, 0.0, Δt, x0, nothing) # ! this extra call is here since for some reason the first call to this function allocates stuff
-            @allocated Flows.step!(scheme, sys, 0.0, Δt, x0, nothing) # ! the type of the input seems to strongly effect the number of allocations made, I am well confused
+        function fun(sys, scheme, Δt, x0)
+            @allocated Flows.step!(scheme, sys, 0.0, Δt, x0, nothing)
         end
-        # @code_warntype
-        @test_broken fun(g, L, scheme, 0.1, x0) == 0
+        sys = Flows.System(g, L)
+        # @code_warntype fun(sys, scheme, 0.1, x0)
+        @test fun(sys, scheme, 0.1, x0) == 0
     end
 end

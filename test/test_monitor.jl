@@ -134,12 +134,10 @@ end
     @test fun(ϕ, x₀, (0, 1), m) == 0
 
     # try resetting and see we still do not allocate
-    reset!(m)
-    @test (@allocated reset!(m)) == 0
+    reset!(m, 101) # ! this sizehint value is just enough to ensure the monitor doesn't have to allocate any new memory
+    @test (@allocated reset!(m, 101)) == 0
 
-    # FIXME: this is most likely a result of allocation in the step! method, although the call above doesn't seem to have an issue
-    # ! the allocation here only happens after the monitor is reset, so maybe initialising the monitor for the first time adds an overhead in memory allocation
-    @test_broken fun(ϕ, x₀, (0, 1), m) == 0
+    @test fun(ϕ, x₀, (0, 1), m) == 0
 end
 
 @testset "reset monitors                         " begin
