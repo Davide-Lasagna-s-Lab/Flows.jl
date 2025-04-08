@@ -177,7 +177,6 @@ end
 
 # ---------------------------------------------------------------------------- #
 # CONSTANT TIME-STEP INTEGRATION FOR NONLINEAR EQUATIONS OR COUPLED SYSTEMS
-# TODO: somehow add logging via some type of type interface with the monitor?
 function _propagate!(method::AbstractMethod{Z, NormalMode},
                    stepping::TimeStepConstant,
                      system::System,

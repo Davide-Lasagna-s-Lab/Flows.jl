@@ -1,7 +1,7 @@
 @testset "tests continuous RK4                   " begin
     T = 1
     flag = 0
-        
+
     for dt = [1e-2, 1e-3, 1e-4]
         x0 = Float64[9.1419853, 1.648665, 35.21793]
         y0 = zeros(3)

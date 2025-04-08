@@ -18,6 +18,7 @@ include("steps/CB3R2R.jl")
 include("steps/CB4R3R.jl")
 
 include("timestepping.jl")
+include("logger.jl")
 include("monitor.jl")
 include("storeonebutlast.jl")
 include("imca.jl")

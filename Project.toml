@@ -6,3 +6,7 @@ authors = ["Davide Lasagna <davide.lasagna@soton.ac.uk>"]
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 MacroTools = "1914dd2f-81c6-5fcd-8719-6d5c9610ff09"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+
+[compat]
+Printf = "1.11.0"
