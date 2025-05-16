@@ -1,6 +1,6 @@
 export StoreOneButLast
 
-# A special monitor that ontly store the time and 
+# A special monitor that only store the time and 
 # state before the last step is made. The state should
 # allow broadcasting assignment
 mutable struct StoreOneButLast{X, F} <: AbstractMonitor{Float64, X}

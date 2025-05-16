@@ -56,7 +56,7 @@ object.
 See also [`reset!`](@ref), [`times`](@ref) and [`samples`](@ref).
 """
 Monitor(x,
-        f::Base.Callable=identity,
+        f::Base.Callable=(t,x)->identity(x),
         store::S=RAMStorage(f(0.0, x));
         oneevery::Int=1,
         savebetween::Tuple{Real, Real}=(-Inf, Inf),
