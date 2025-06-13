@@ -106,7 +106,7 @@ on how to define and use `Monitor` objects.
     (I::Flow)(x, span::NTuple{2, Real}, c::AbstractStageCache)
 
 Map `x` at time `span[1]` to the later time `span[2]`, filling the stage cache
-obejct `c` along the way. See [`Flow.jl Stage Caches`](@ref) for more details
+object `c` along the way. See [`Flow.jl Stage Caches`](@ref) for more details
 on how to define and use `AbstractStageCache` objects.
 """
 (I::Flow)(x, span::NTuple{2, Real}, c::AbstractStageCache) =

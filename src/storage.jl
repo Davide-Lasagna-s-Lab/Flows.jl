@@ -41,7 +41,8 @@ struct RAMStorage{T,
     storelast::Bool # this flag is used to avoid storing the last step of a simulation. it
                     # has no effect on the behaviour of this object alone but interacts
                     # when used in a call to a `Flow` object. This is useful for periodic
-                    # problems, when we want to repeat storing the first/last element twice
+                    # problems, when we want don't to repeat storing the first/last element
+                    # twice
        period::T    # The period in case data is periodic. Defaults to `0.0`, so non periodic.
                     # If the period is finite, it is assumed that the data is uniformly spaced
                     # and that the last/first element is not repeated in the sequence
