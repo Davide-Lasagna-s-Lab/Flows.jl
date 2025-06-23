@@ -200,7 +200,7 @@ function _propagate!(method::AbstractMethod{Z, NormalMode},
     # define integration times
     tdts = Steps(span[1], span[2], stepping.Δt)
 
-    # the number of steps is used for the `StoreOneButLast` monitor
+    # the number of steps is used for the `StoreOnlyLast` monitor
     nsteps = length(tdts)
 
     # always push initial state to monitor and storage
@@ -218,7 +218,7 @@ function _propagate!(method::AbstractMethod{Z, NormalMode},
         step!(method, system, t, dt, z, cache)
         if  M <: AbstractMonitor
             # skip all pushes except the last but one
-            M <: StoreOneButLast && (j != nsteps - 1 && continue)
+            M <: StoreOnlyLast && (j != nsteps && continue)
 
             # we might need to force pushing the last element to the monitor
             force = j == nsteps ? true : false

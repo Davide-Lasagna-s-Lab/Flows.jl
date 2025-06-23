@@ -79,7 +79,7 @@ end
     @test samples(m) == [0.0, 4.0]
 end
 
-@testset "storeonebutlast                        " begin
+@testset "storeonlylast                          " begin
     # integral of t in dt
     g(t, x, dxdt) = (dxdt[1] = t; dxdt)
     L = Diagonal([0.0])
@@ -88,7 +88,7 @@ end
     scheme = CB3R2R3e(Float64[0.0])
 
     # monitors
-    m = StoreOneButLast(zeros(1))
+    m = StoreOnlyLast(zeros(1))
 
     # forward map
     ϕ = flow(g, L, scheme, TimeStepConstant(0.1))
@@ -99,8 +99,8 @@ end
     # test end point is calculated correctly
     ϕ(x₀, (0, 1), m)
 
-    @test m.t == 0.9
-    @test m.x ≈ [0.5*(0.9)^2]
+    @test m.t == 1.0
+    @test m.x ≈ [0.5]
 end
 
 @testset "allocation                             " begin
