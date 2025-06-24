@@ -217,8 +217,8 @@ function _propagate!(method::AbstractMethod{Z, NormalMode},
     for (j, (t, dt)) in enumerate(tdts)
         step!(method, system, t, dt, z, cache)
         if  M <: AbstractMonitor
-            # skip all pushes except the last but one
-            M <: StoreOnlyLast && (j != nsteps && continue)
+            # skip all pushes except N steps from the last one
+            M <: StoreNFromLast && (j != nsteps - getN(mon) && continue)
 
             # we might need to force pushing the last element to the monitor
             force = j == nsteps ? true : false

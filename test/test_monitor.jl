@@ -1,4 +1,3 @@
-import LinearAlgebra: Diagonal, norm
 import LinearAlgebra: Diagonal, norm, dot
 using Statistics
 using Flows
@@ -79,7 +78,7 @@ end
     @test samples(m) == [0.0, 4.0]
 end
 
-@testset "storeonlylast                          " begin
+@testset "storenfromlast                         " begin
     # integral of t in dt
     g(t, x, dxdt) = (dxdt[1] = t; dxdt)
     L = Diagonal([0.0])
@@ -88,19 +87,18 @@ end
     scheme = CB3R2R3e(Float64[0.0])
 
     # monitors
-    m = StoreOnlyLast(zeros(1))
+    ms = [StoreNFromLast{N}(zeros(1)) for N in 0:2]
 
     # forward map
     ϕ = flow(g, L, scheme, TimeStepConstant(0.1))
 
-    # initial condition
-    x₀ = [0.0]
+    for (m, tf) in zip(ms, [1.0, 0.9, 0.8])
+        # test end point is calculated correctly
+        ϕ([0.0], (0, 1), m)
 
-    # test end point is calculated correctly
-    ϕ(x₀, (0, 1), m)
-
-    @test m.t == 1.0
-    @test m.x ≈ [0.5]
+        @test m.t ≈ tf
+        @test m.x ≈ [0.5*tf^2]
+    end
 end
 
 @testset "allocation                             " begin
