@@ -104,3 +104,22 @@ end
 @inline _unpack(args::Tuple, i) = (unpack(args[1], i), _unpack(Base.tail(args), i)...)
 @inline _unpack(args::Tuple{Any}, i) = (unpack(args[1], i),)
 @inline _unpack(args::Tuple{}, i) = ()
+
+
+
+# Symmetry transformation for coupled flow variables
+struct CoupledTransform{SO}
+    sym::SO
+end
+CoupledTransform(::Nothing) = nothing
+
+# unified type for when no transform is specified
+const NoTransform = Union{Nothing, CoupledTransform{Nothing}}
+
+# transform each component of the coupled variables
+function (f::CoupledTransform)(x::Coupled{N}, s) where {N}
+    for i in 1:N
+        f.sym(x[i], s)
+    end
+    return x
+end
