@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Cookbook · Flows.jl</title><meta name="title" content="Cookbook · Flows.jl"/><meta property="og:title" content="Cookbook · Flows.jl"/><meta property="twitter:title" content="Cookbook · Flows.jl"/><meta name="description" content="Documentation for Flows.jl."/><meta property="og:description" content="Documentation for Flows.jl."/><meta property="twitter:description" content="Documentation for Flows.jl."/><meta property="og:url" content="https://davide-lasagna-s-lab.github.io/Flows.jl/stable/cookbook/"/><meta property="twitter:url" content="https://davide-lasagna-s-lab.github.io/Flows.jl/stable/cookbook/"/><link rel="canonical" href="https://davide-lasagna-s-lab.github.io/Flows.jl/stable/cookbook/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img src="../assets/logo.svg" alt="Flows.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../">Flows.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><span class="tocitem">Getting started</span><ul><li><a class="tocitem" href="../quickstart/">Quick start</a></li></ul></li><li><span class="tocitem">Concepts</span><ul><li><a class="tocitem" href="../foundations/">Mathematical foundations</a></li><li><a class="tocitem" href="../architecture/">Architecture</a></li></ul></li><li><span class="tocitem">Building blocks</span><ul><li><a class="tocitem" href="../states/">States and vector fields</a></li><li><a class="tocitem" href="../schemes/">Integration schemes</a></li><li><a class="tocitem" href="../time-stepping/">Time stepping</a></li><li><a class="tocitem" href="../coupled/">Coupled systems</a></li><li><a class="tocitem" href="../trajectories/">Trajectory data</a></li><li><a class="tocitem" href="../linearised/">Linearised dynamics</a></li><li><a class="tocitem" href="../symmetry/">Symmetry transformations</a></li><li><a class="tocitem" href="../quadrature/">Quadrature equations</a></li></ul></li><li><span class="tocitem">Practice</span><ul><li class="is-active"><a class="tocitem" href>Cookbook</a><ul class="internal"><li><a class="tocitem" href="#Lorenz-attractor-—-forward-integration"><span>Lorenz attractor — forward integration</span></a></li><li><a class="tocitem" href="#Lorenz-with-a-running-average-via-quadrature"><span>Lorenz with a running average via quadrature</span></a></li><li><a class="tocitem" href="#Custom-adaptive-time-step-controller"><span>Custom adaptive time-step controller</span></a></li><li><a class="tocitem" href="#Sensitivity-to-initial-conditions-of-the-Lorenz-system"><span>Sensitivity to initial conditions of the Lorenz system</span></a></li><li><a class="tocitem" href="#Lyapunov-exponent-of-the-Lorenz-attractor"><span>Lyapunov exponent of the Lorenz attractor</span></a></li><li><a class="tocitem" href="#Discrete-adjoint-sensitivity-for-an-optimal-control-problem"><span>Discrete adjoint sensitivity for an optimal-control problem</span></a></li><li><a class="tocitem" href="#Continuous-adjoint-for-a-stiff-diffusion-problem"><span>Continuous adjoint for a stiff diffusion problem</span></a></li><li><a class="tocitem" href="#Stiff-diffusion-with-CNRK2"><span>Stiff diffusion with CNRK2</span></a></li><li><a class="tocitem" href="#Further-reading"><span>Further reading</span></a></li></ul></li></ul></li><li><span class="tocitem">Reference</span><ul><li><a class="tocitem" href="../internals/">Internals</a></li><li><a class="tocitem" href="../api/">API</a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Practice</a></li><li class="is-active"><a href>Cookbook</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Cookbook</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/Davide-Lasagna-s-Lab/Flows.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/Davide-Lasagna-s-Lab/Flows.jl/blob/master/docs/src/cookbook.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Cookbook"><a class="docs-heading-anchor" href="#Cookbook">Cookbook</a><a id="Cookbook-1"></a><a class="docs-heading-anchor-permalink" href="#Cookbook" title="Permalink"></a></h1><p>End-to-end worked examples. Each entry is self-contained: it states the problem, derives whatever mathematics is needed, sets up the <code>Flows.jl</code> flow, runs the integration, and reports the result.</p><p>The examples are arranged roughly by increasing complexity. The first three exercise the forward interface; the middle three exercise the coupled and linearised paths; the last two exercise symmetry reduction and stiff integration.</p><table><tr><th style="text-align: right">#</th><th style="text-align: right">Example</th><th style="text-align: right">Concepts</th></tr><tr><td style="text-align: right">1</td><td style="text-align: right"><a href="#Lorenz-attractor-—-forward-integration">Lorenz attractor — forward integration</a></td><td style="text-align: right">Flow construction, monitor, <code>times</code> / <code>samples</code></td></tr><tr><td style="text-align: right">2</td><td style="text-align: right"><a href="#Lorenz-with-a-running-average-via-quadrature">Lorenz with a running average via quadrature</a></td><td style="text-align: right">Coupled systems, quadrature equation</td></tr><tr><td style="text-align: right">3</td><td style="text-align: right"><a href="#Custom-adaptive-time-step-controller">Custom adaptive time-step controller</a></td><td style="text-align: right"><code>AbstractTimeStepFromHook</code></td></tr><tr><td style="text-align: right">4</td><td style="text-align: right"><a href="#Sensitivity-to-initial-conditions-of-the-Lorenz-system">Sensitivity to initial conditions of the Lorenz system</a></td><td style="text-align: right">Coupled forward tangent path</td></tr><tr><td style="text-align: right">5</td><td style="text-align: right"><a href="#Lyapunov-exponent-of-the-Lorenz-attractor">Lyapunov exponent of the Lorenz attractor</a></td><td style="text-align: right">Tangent + quadrature + re-normalisation via monitor</td></tr><tr><td style="text-align: right">6</td><td style="text-align: right"><a href="#Discrete-adjoint-sensitivity-for-an-optimal-control-problem">Discrete adjoint sensitivity for an optimal-control problem</a></td><td style="text-align: right">Stage cache, <code>DiscreteMode(true)</code>, <code>TimeStepFromCache</code></td></tr><tr><td style="text-align: right">7</td><td style="text-align: right"><a href="#Continuous-adjoint-for-a-stiff-diffusion-problem">Continuous adjoint for a stiff diffusion problem</a></td><td style="text-align: right"><code>RAMStorage</code>, <code>ContinuousMode(true)</code>, <code>TimeStepFromStorage</code>, IMEX</td></tr><tr><td style="text-align: right">8</td><td style="text-align: right"><a href="#Stiff-diffusion-with-CNRK2">Stiff diffusion with CNRK2</a></td><td style="text-align: right">IMEX setup, <code>Diagonal</code> linear operator</td></tr></table><p>The complete code for each example can be copy-pasted into a Julia REPL with <code>Flows.jl</code> installed.</p><hr/><h2 id="Lorenz-attractor-—-forward-integration"><a class="docs-heading-anchor" href="#Lorenz-attractor-—-forward-integration">Lorenz attractor — forward integration</a><a id="Lorenz-attractor-—-forward-integration-1"></a><a class="docs-heading-anchor-permalink" href="#Lorenz-attractor-—-forward-integration" title="Permalink"></a></h2><p>The canonical &quot;Hello, world!&quot; for a flow library. We define the Lorenz system and integrate it from a random initial condition, recording the trajectory.</p><pre><code class="language-julia hljs">using Flows, LinearAlgebra
+
+struct Lorenz
+    σ::Float64; ρ::Float64; β::Float64
+end
+
+function (eq::Lorenz)(t, x, dxdt)
+    dxdt[1] = eq.σ * (x[2] - x[1])
+    dxdt[2] = eq.ρ * x[1] - x[2] - x[1]*x[3]
+    dxdt[3] = -eq.β * x[3] + x[1]*x[2]
+    return dxdt
+end
+
+F   = flow(Lorenz(10.0, 28.0, 8/3),
+           RK4(zeros(3)),
+           TimeStepConstant(1e-2))
+
+mon = Monitor(zeros(3), (t, x) -&gt; copy(x))
+x   = rand(3)
+F(x, (0.0, 50.0), mon)
+
+ts  = times(mon)
+xs  = samples(mon)</code></pre><p><code>xs</code> is a <code>Vector{Vector{Float64}}</code> ready to be plotted; <code>ts</code> is the matching time vector.</p><hr/><h2 id="Lorenz-with-a-running-average-via-quadrature"><a class="docs-heading-anchor" href="#Lorenz-with-a-running-average-via-quadrature">Lorenz with a running average via quadrature</a><a id="Lorenz-with-a-running-average-via-quadrature-1"></a><a class="docs-heading-anchor-permalink" href="#Lorenz-with-a-running-average-via-quadrature" title="Permalink"></a></h2><p>We want the time-average <span>$\langle x_3\rangle = (1/T)\int_0^T x_3(t)\,\mathrm{d}t$</span> along a Lorenz trajectory. The coupled-quadrature recipe yields a fourth-order accurate result with no quadrature-rule overhead.</p><pre><code class="language-julia hljs">quad(t, x, dxdt, I, dIdt) = (dIdt[1] = x[3]; return dIdt)
+
+F = flow(couple(Lorenz(10.0, 28.0, 8/3), quad),
+         RK4(couple(zeros(3), zeros(1))),
+         TimeStepConstant(1e-2))
+
+x = rand(3)
+I = [0.0]
+F(couple(x, I), (0.0, 100.0))
+
+avg = I[1] / 100.0    # time-averaged ⟨x₃⟩</code></pre><p>To monitor the running average <span>$\bar g(\tau) = I(\tau)/\tau$</span> along the trajectory, attach a monitor that extracts the quadrature component:</p><pre><code class="language-julia hljs">mon = Monitor(couple(x, I), (t, xq) -&gt; xq[2][1] / max(t, eps()))
+F(couple(x, I), (0.0, 100.0), mon)
+
+# samples(mon)[end]  →  the same `avg` as above</code></pre><hr/><h2 id="Custom-adaptive-time-step-controller"><a class="docs-heading-anchor" href="#Custom-adaptive-time-step-controller">Custom adaptive time-step controller</a><a id="Custom-adaptive-time-step-controller-1"></a><a class="docs-heading-anchor-permalink" href="#Custom-adaptive-time-step-controller" title="Permalink"></a></h2><p>A constant time-step works for Lorenz at moderate <span>$\rho$</span>, but for some PDE problems a CFL-like constraint changes with the state. The example below caps the step at a target CFL number computed from the state norm.</p><pre><code class="language-julia hljs">struct CFLHook &lt;: AbstractTimeStepFromHook
+    cmax::Float64
+end
+
+(h::CFLHook)(g, A, z) = h.cmax / (maximum(abs, z) + eps())
+
+F = flow(Lorenz(10.0, 28.0, 8/3),
+         RK4(zeros(3)),
+         CFLHook(0.5))
+
+x = rand(3)
+F(x, (0.0, 50.0))</code></pre><p>The hook returns whatever <code>Δt</code> is appropriate for the <em>next</em> step; the integrator clamps it so the requested endpoint is hit exactly.</p><hr/><h2 id="Sensitivity-to-initial-conditions-of-the-Lorenz-system"><a class="docs-heading-anchor" href="#Sensitivity-to-initial-conditions-of-the-Lorenz-system">Sensitivity to initial conditions of the Lorenz system</a><a id="Sensitivity-to-initial-conditions-of-the-Lorenz-system-1"></a><a class="docs-heading-anchor-permalink" href="#Sensitivity-to-initial-conditions-of-the-Lorenz-system" title="Permalink"></a></h2><p>The flow Jacobian <span>$J^{\tau}(\mathbf{x}_0)$</span> maps an initial-condition perturbation <span>$\mathbf{y}_0$</span> to its propagated form <span>$\mathbf{y}(t_0+\tau)$</span>. The coupled-forward path computes <span>$J^{\tau}\mathbf{y}_0$</span> in a single pass.</p><pre><code class="language-julia hljs"># tangent right-hand-side: f_y&#39; = J_x f · y
+function lorenz_tan(t, x, dxdt, y, dydt)
+    σ, ρ, β = 10.0, 28.0, 8/3
+    dydt[1] = σ * (y[2] - y[1])
+    dydt[2] = (ρ - x[3]) * y[1] - y[2] - x[1] * y[3]
+    dydt[3] = x[2] * y[1] + x[1] * y[2] - β * y[3]
+    return dydt
+end
+
+F = flow(couple(Lorenz(10.0, 28.0, 8/3), lorenz_tan),
+         RK4(couple(zeros(3), zeros(3))),
+         TimeStepConstant(1e-3))
+
+x = rand(3)
+y = [1.0, 0.0, 0.0]                    # perturb x[1] direction
+F(couple(x, y), (0.0, 1.0))
+
+y    # ≈ J^{1.0}(x₀) · [1, 0, 0]</code></pre><p>To get the full <span>$3\times 3$</span> Jacobian, run the integration three times with three basis vectors for <span>$\mathbf{y}_0$</span> and stack the results.</p><hr/><h2 id="Lyapunov-exponent-of-the-Lorenz-attractor"><a class="docs-heading-anchor" href="#Lyapunov-exponent-of-the-Lorenz-attractor">Lyapunov exponent of the Lorenz attractor</a><a id="Lyapunov-exponent-of-the-Lorenz-attractor-1"></a><a class="docs-heading-anchor-permalink" href="#Lyapunov-exponent-of-the-Lorenz-attractor" title="Permalink"></a></h2><p>The maximum Lyapunov exponent <span>$\lambda_1$</span> measures the average exponential growth rate of an infinitesimal perturbation along the attractor:</p><p class="math-container">\[\lambda_1 = \lim_{T\to\infty}\frac{1}{T}\int_0^T \frac{\langle\mathbf{y},\,\mathcal{J}\mathbf{y}\rangle}{\langle\mathbf{y},\mathbf{y}\rangle}\,\mathrm{d}t,\]</p><p>with <span>$\mathbf{y}(t)$</span> the tangent perturbation re-normalised to unit length frequently enough that it does not overflow.</p><p><code>Flows.jl</code> makes this three-line:</p><ul><li>a primal (Lorenz),</li><li>a tangent (linearised Lorenz),</li><li>a quadrature recording the instantaneous growth rate,</li></ul><p>re-normalising the tangent periodically inside a monitor callback.</p><pre><code class="language-julia hljs">function growth_rate(t, x, dxdt, y, dydt, λ, dλdt)
+    # advance the primal
+    lorenz_rhs(t, x, dxdt)                            # fill dxdt
+    # advance the tangent
+    lorenz_tan(t, x, dxdt, y, dydt)                    # fill dydt
+    # instantaneous logarithmic growth: ⟨y, J·y⟩ / ⟨y, y⟩
+    dλdt[1] = dot(y, dydt) / dot(y, y)
+    return dλdt
+end
+
+deps = CallDependency((1,), (1, 2), (1, 2, 3))
+
+F = flow(couple(lorenz_rhs, lorenz_tan, growth_rate), deps,
+         RK4(couple(zeros(3), zeros(3), zeros(1))),
+         TimeStepConstant(1e-3))
+
+# normalise tangent every 100 steps to avoid overflow
+mon = Monitor(couple(zeros(3), zeros(3), zeros(1)),
+              (t, z) -&gt; (normalize!(z[2]); 0.0);
+              oneevery=100)
+
+x, y, λ = rand(3), normalize!(rand(3)), [0.0]
+F(couple(x, y, λ), (0.0, 500.0), mon)
+
+λ_1 = λ[1] / 500.0       # ≈ 0.906 for ρ=28</code></pre><p>This uses every coupled-system feature: the call-dependency override, the per-component RHS, and the monitor-as-callback re-normalisation.</p><hr/><h2 id="Discrete-adjoint-sensitivity-for-an-optimal-control-problem"><a class="docs-heading-anchor" href="#Discrete-adjoint-sensitivity-for-an-optimal-control-problem">Discrete adjoint sensitivity for an optimal-control problem</a><a id="Discrete-adjoint-sensitivity-for-an-optimal-control-problem-1"></a><a class="docs-heading-anchor-permalink" href="#Discrete-adjoint-sensitivity-for-an-optimal-control-problem" title="Permalink"></a></h2><p>A textbook adjoint sensitivity computation, derived in detail in the <em>adjoint sensitivity</em> section of <a href="../foundations/#Mathematical-foundations">Mathematical foundations</a>. The objective is</p><p class="math-container">\[\mathcal{J}(\mathbf{x}_0) = \int_0^T \sin\bigl(x(t)\bigr)\,\mathrm{d}t,\]</p><p>for the toy scalar problem <span>$\dot x = x^2 + u(t)$</span>, with the goal of computing <span>$\mathrm{d}\mathcal{J}/\mathrm{d}u(t)$</span>.</p><p>The discrete adjoint path uses a stage cache:</p><pre><code class="language-julia hljs"># 1. primal: cache the stages
+cache = RAMStageCache(nstages(RK4), zeros(1))
+F     = flow(toy_rhs, RK4(zeros(1)), TimeStepConstant(0.01))
+x     = [1.0]
+F(x, (0.0, 1.0), cache)
+
+# 2. adjoint: terminal condition q(T) = 0, march backwards
+A = flow(toy_adj,
+         RK4(zeros(1), DiscreteMode(true)),
+         TimeStepFromCache())
+q = [0.0]
+A(q, cache)              # q now contains the discrete adjoint over the grid
+
+# 3. gradient: dJ/du(t) = -q(t)
+grad = -q[1]</code></pre><p>The discrete-adjoint identity guarantees that <code>grad</code> is the <strong>exact</strong> derivative of the discretised objective with respect to the discretised control. This is the property a Newton optimiser will reward you for.</p><hr/><h2 id="Continuous-adjoint-for-a-stiff-diffusion-problem"><a class="docs-heading-anchor" href="#Continuous-adjoint-for-a-stiff-diffusion-problem">Continuous adjoint for a stiff diffusion problem</a><a id="Continuous-adjoint-for-a-stiff-diffusion-problem-1"></a><a class="docs-heading-anchor-permalink" href="#Continuous-adjoint-for-a-stiff-diffusion-problem" title="Permalink"></a></h2><p>The setup is a one-dimensional heat equation <span>$\partial_t u = \nu\,\partial_x^2 u + s(t, u)$</span> discretised in Fourier space, where the linear part is stiff and the source <span>$s$</span> is mild. We want the gradient of <span>$\mathcal{J} = \int_0^T \|u(t)\|^2\,\mathrm{d}t$</span> with respect to a control parameter that enters <span>$s$</span>.</p><p>The CB3R2R3e scheme handles the IMEX primal cheaply; the storage records step-end snapshots, and a <code>ContinuousMode(true)</code> flow integrates the adjoint backwards against the interpolated primal.</p><pre><code class="language-julia hljs"># primal in Fourier space
+ν, N = 0.01, 64
+L    = Diagonal(-ν .* (0:N-1).^2)         # stiff diffusive operator
+s    = (t, û, dûdt) -&gt; ...                # the explicit part
+F    = flow(s, L, CB3R2R3e(zeros(ComplexF64, N)), TimeStepConstant(1e-2))
+
+store = RAMStorage(zeros(ComplexF64, N); degree=5)
+û     = randn(ComplexF64, N)
+F(û, (0.0, 1.0), store)
+
+# continuous adjoint: ContinuousMode(true) with TimeStepFromStorage
+adj_rhs = (t, û_interp, q, dqdt) -&gt; ...
+
+A = flow(adj_rhs, L&#39;, CB3R2R3e(zeros(ComplexF64, N), ContinuousMode(true)),
+         TimeStepFromStorage(1e-2))
+
+q = zeros(ComplexF64, N)              # terminal condition
+A(q, store, (1.0, 0.0))               # backward span signals reverse time</code></pre><p>The adjoint flow uses <strong>its own</strong> time step (here, the same as the primal but it could differ) and interpolates the primal at every internal stage time of every step.</p><hr/><h2 id="Stiff-diffusion-with-CNRK2"><a class="docs-heading-anchor" href="#Stiff-diffusion-with-CNRK2">Stiff diffusion with CNRK2</a><a id="Stiff-diffusion-with-CNRK2-1"></a><a class="docs-heading-anchor-permalink" href="#Stiff-diffusion-with-CNRK2" title="Permalink"></a></h2><p>A self-contained example of using an IMEX scheme on a finite-difference discretisation of the heat equation. The stiff linear part is a tridiagonal Laplacian; the rest is a small nonlinear source.</p><p>For brevity we use <code>Diagonal</code> to stand in for the tridiagonal, since <code>Flows.jl</code> ships an <a href="../api/#Flows.ImcA!"><code>ImcA!</code></a> for it out of the box:</p><pre><code class="language-julia hljs">using LinearAlgebra
+
+N   = 64
+ν   = 1.0
+k   = (0:N-1)
+L   = Diagonal(-ν .* k.^2)                       # spectral diffusion
+src = (t, û, dûdt) -&gt; (dûdt .= 0.01 .* sin.(û); dûdt)
+
+F   = flow(src, L, CNRK2(zeros(ComplexF64, N)), TimeStepConstant(1e-2))
+
+û   = randn(ComplexF64, N)
+F(û, (0.0, 1.0))</code></pre><p><code>Diagonal</code> is the only out-of-the-box linear operator. For non-diagonal stiff parts (a real tridiagonal Laplacian, a banded matrix, …) the user provides a <code>struct</code>, a <code>LinearAlgebra.mul!</code> method, and an <code>ImcA!</code> method that solves <span>$(I - c\mathcal{L})\,\mathbf{z} = \mathbf{y}$</span>. See <a href="../states/#States-and-vector-fields">States and vector fields</a>.</p><hr/><h2 id="Further-reading"><a class="docs-heading-anchor" href="#Further-reading">Further reading</a><a id="Further-reading-1"></a><a class="docs-heading-anchor-permalink" href="#Further-reading" title="Permalink"></a></h2><ul><li><a href="../foundations/#Mathematical-foundations">Mathematical foundations</a> for the equations behind the examples.</li><li><a href="../linearised/#Linearised-dynamics">Linearised dynamics</a> for the full discussion of the discrete-vs-continuous adjoint choice.</li><li><a href="../architecture/#Architecture">Architecture</a> and <a href="../internals/#Internals">Internals</a> for the implementation details exposed by these examples.</li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../quadrature/">« Quadrature equations</a><a class="docs-footer-nextpage" href="../internals/">Internals »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 2 June 2026 13:43">Tuesday 2 June 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
