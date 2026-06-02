@@ -3,35 +3,51 @@ import LinearAlgebra
 export ImcA!
 
 """
-    ImcA!(A, c::Real, y, z)
+    ImcA!(A, c::Real, y, z) -> z
 
-Return `z` that solves the linear problem `(I - c*A)*z = y`, where `c` is a scalar, 
-`A` a linear operator and `I` is the identity. 
+Solve the linear problem `(I - c·A) z = y` for `z`, where `A` is a
+linear operator, `c` is a scalar, and `I` is the identity. The result
+is written in place into `z` and returned.
 
-To use the IMEX schemes in this package, user should add methods to this function for 
-their custom types, using an efficient implementation. A default implementation when 
-`A` is of type `LinearAlgebra.Diagonal` and `y` and `z` is provided by this package.
+This is one of the two operator-level primitives the IMEX time
+schemes rely on (the other being [`ImcA_mul!`](@ref)). Users with a
+custom `A` type should add a specialised method to `ImcA!` that
+exploits any structure available. A fallback implementation is
+provided for `LinearAlgebra.Diagonal`; everything else raises an
+informative error.
 
 # Notes
-
-The name of this function should be read "I-minus-see-A".
+The function name should be read "I-minus-cee-A".
 """
-ImcA!(A, c::Real, y, z) = 
+ImcA!(A, c::Real, y, z) =
     error("ImcA! missing implementation for operator `A` of type $(typeof(A))")
 
 """
-    ImcA_mul!(A, c::Real, y, z)
+    ImcA_mul!(A, c::Real, y, z) -> z
 
-Calculate the product 'z = (I - c*A)*y', where `c` is a scalar, `A` is a linear operator 
-and `I` is the identity. 
+Compute `z = (I - c·A) y` for `z`, where `A` is a linear operator, `c`
+is a scalar, and `I` is the identity. The result is written in place
+into `z` and returned.
+
+This pairs with [`ImcA!`](@ref): the IMEX schemes use `ImcA_mul!` to
+form the right-hand-side of the linear system and `ImcA!` to solve
+it. The default implementation calls `mul!(z, A, y)` and then performs
+the axpby in place; specialise it only when a faster `(I - c·A) y`
+evaluation is available.
 """
-ImcA_mul!(A, c::Real, y, z) = (mul!(z, A, y); z .= y .- c.*z; z) 
+ImcA_mul!(A, c::Real, y, z) = (mul!(z, A, y); z .= y .- c.*z; z)
 
+# ----------------------------------------------------------------------------
+# Diagonal fallback
+# ----------------------------------------------------------------------------
+#
+# Provide a built-in implementation for the very common case where the
+# stiff operator is a diagonal matrix. `(I - cA) z = y` becomes
+# `z[i] = y[i] / (1 - c·A.diag[i])`, an embarrassingly parallel
+# elementwise operation.
 
-# Provide interface for systems where the stiff operator is
-# defined as a `Diagonal` matrix object from Julia Base.
-ImcA!(A::LinearAlgebra.Diagonal, c::Real, y::V, z::V) where {V<:AbstractVector} = 
+ImcA!(A::LinearAlgebra.Diagonal, c::Real, y::V, z::V) where {V<:AbstractVector} =
     (z .= y./(1 .- c.*A.diag); z)
 
-LinearAlgebra.mul!(out::V, A::LinearAlgebra.Diagonal, in::V) where {V<:AbstractVector} = 
+LinearAlgebra.mul!(out::V, A::LinearAlgebra.Diagonal, in::V) where {V<:AbstractVector} =
     (out .= A.diag.*in; out)

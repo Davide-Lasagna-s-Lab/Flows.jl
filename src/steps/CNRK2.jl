@@ -9,9 +9,17 @@ struct CNRK2{X, MODE, NX} <: AbstractMethod{X, MODE, 2}
 end
 
 """
-    CNRK2(x::X, mode::AbstractMode=NormalMode())
+    CNRK2(x::X, mode::AbstractMode = NormalMode()) -> CNRK2
 
-Constructs a `CNRK2` integration scheme object for integration with mode `mode`.
+Construct a second-order Crank–Nicolson / Heun (predictor–corrector)
+implicit-explicit scheme. The implicit part is treated via
+[`ImcA!`](@ref) and the explicit part via the right-hand-side; both
+must be defined for the system. `x` is a template object used to
+preallocate the internal stage buffers (five of them).
+
+`mode` selects forward nonlinear ([`NormalMode`](@ref)) vs. tangent /
+adjoint linearised modes; the discrete-mode adjoint runs the kernel
+backwards through the cached stages.
 """
 CNRK2(x::X, ::MODE = NormalMode()) where {X, MODE<:AbstractMode} = 
     CNRK2{X, MODE}(ntuple(i->similar(x), 5))

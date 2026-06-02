@@ -1,12 +1,35 @@
-# ---------------------------------------------------------------------------- #
-# Abstract tableau definition
+# ============================================================================
+# Tableau types
+# ============================================================================
+#
+# A `Tableau` is a Butcher tableau in the standard sense: the matrix `a`,
+# the main weights `b`, the embedded weights `e` (used for error estimation
+# in adaptive schemes), and the abscissae `c`. `IMEXTableau` bundles two
+# such tableaux side by side — the implicit and explicit parts of an
+# implicit-explicit Runge–Kutta scheme.
+
+"""
+    AbstractTableau{T, NS}
+
+Supertype for Runge–Kutta tableaux. `T` is the coefficient element
+type; `NS` is the number of internal stages.
+"""
 abstract type AbstractTableau{T, NS} end
 
-# number of stages
+"""
+    nstages(::AbstractTableau) -> Int
+
+Return the number of internal stages of the tableau.
+"""
 nstages(::AbstractTableau{T, NS}) where {T, NS} = NS
 
-# ---------------------------------------------------------------------------- #
-# Single tableau
+"""
+    Tableau{T, NS}(a::Matrix, b::Vector, e::Vector, c::Vector)
+
+Concrete Butcher tableau. The matrix `a` is `NS × NS`; the vectors
+`b`, `e`, and `c` all have length `NS`. The constructor checks the
+shape invariants.
+"""
 struct Tableau{T, NS} <: AbstractTableau{T, NS}
     a::Matrix{T}
     b::Vector{T}
@@ -22,13 +45,26 @@ struct Tableau{T, NS} <: AbstractTableau{T, NS}
     end
 end
 
-# outer constructor
+"""
+    Tableau(a, b, e, c) -> Tableau
+
+Outer constructor that promotes the element types of the four
+arrays to a common type and infers the stage count from `length(c)`.
+"""
 function Tableau(a::Matrix, b::Vector, e::Vector, c::Vector)
     T = promote_type(eltype.((a, b, e, c))...)
     Tableau{length(c)}(convert(Matrix{T}, a), convert.(Vector{T}, (b, e, c))...)
 end
 
-# get coefficients of the tableau
+"""
+    getindex(tab::Tableau, :a, i, j)
+    getindex(tab::Tableau, :b | :e | :c, i)
+
+Symbol-tagged accessor returning coefficients of the tableau by their
+mathematical role: `:a` is the coupling matrix, `:b` and `:e` are the
+main and embedded weights, and `:c` is the abscissae. The numeric
+indices follow the same conventions as the underlying arrays.
+"""
 Base.getindex(tab::Tableau, ::Symbol, i::Integer, j::Integer) = tab.a[i, j]
 function Base.getindex(tab::Tableau{T}, t::Symbol, i::Integer)::T where {T}
     t == :b && return tab.b[i]
@@ -36,30 +72,64 @@ function Base.getindex(tab::Tableau{T}, t::Symbol, i::Integer)::T where {T}
     t == :c && return tab.c[i]
 end
 
-# Convert a tableau to have coefficient of given type
+"""
+    convert(::Type{Tableau{T, NS}}, tab::Tableau{S, NS}) -> Tableau{T, NS}
+
+Convert all coefficients of `tab` to element type `T`. The number of
+stages must match.
+"""
 Base.convert(::Type{Tableau{T, NS}}, tab::Tableau{S, NS}) where {T, S, NS} =
     Tableau(convert(Matrix{T}, tab.a), convert(Vector{T}, tab.b),
             convert(Vector{T}, tab.e), convert(Vector{T}, tab.c))
 
-# ~~ Tableau for IMEX schemes ~~~
+
+# ============================================================================
+# IMEXTableau — implicit + explicit pair
+# ============================================================================
+
+"""
+    IMEXTableau{T, NS}(tabI::Tableau{T, NS}, tabE::Tableau{T, NS})
+
+Bundle the implicit and explicit Butcher tableaux of an
+implicit-explicit Runge–Kutta scheme. Both tableaux must share the
+same element type and stage count.
+"""
 struct IMEXTableau{T, NS} <: AbstractTableau{T, NS}
     tabI::Tableau{T, NS}
     tabE::Tableau{T, NS}
 end
 
-# outer constructor
+"""
+    IMEXTableau(tabI, tabE) -> IMEXTableau
+
+Outer constructor that promotes the element types of `tabI` and
+`tabE` to a common type before bundling them.
+"""
 function IMEXTableau(tabI::Tableau{TI, NS},
                      tabE::Tableau{TE, NS}) where {TI, TE, NS}
     T = promote_type(TI, TE)
     IMEXTableau(convert(Tableau{T, NS}, tabI), convert(Tableau{T, NS}, tabE))
 end
 
+"""
+    convert(::Type{IMEXTableau{T, NS}}, tab) -> IMEXTableau{T, NS}
+
+Convert both internal tableaux to element type `T`. The stage count
+must match.
+"""
 Base.convert(::Type{IMEXTableau{T, NS}},
           tab::IMEXTableau{S, NS}) where {T, S, NS} =
     IMEXTableau(convert(Tableau{T, NS}, tab.tabI),
                 convert(Tableau{T, NS}, tab.tabE))
 
-# get coefficients of the tableau
+"""
+    getindex(tab::IMEXTableau, :aᴵ | :aᴱ, i, j)
+    getindex(tab::IMEXTableau, :bᴵ | :eᴵ | :cᴵ | :bᴱ | :eᴱ | :cᴱ, i)
+
+Coefficient accessor using superscripted symbols to disambiguate the
+implicit (ᴵ) and explicit (ᴱ) parts of an IMEX tableau. Throws an
+`ArgumentError` for unrecognised symbols.
+"""
 function Base.getindex(tab::IMEXTableau{T},
                          t::Symbol,
                          i::Integer,
@@ -80,7 +150,18 @@ function Base.getindex(tab::IMEXTableau{T}, t::Symbol, i::Integer)::T where {T}
 end
 
 
-# Tableaux from Cavaglieri and Bewley 2015
+# ============================================================================
+# Tableaux from Cavaglieri & Bewley 2015
+# ============================================================================
+#
+# The schemes implemented in `src/steps/CB3R2R.jl` and `src/steps/CB4R3R.jl`
+# rely on these named tableaux. Coefficients are entered as exact rationals
+# and converted to `Float64` at the bottom of the file so the step kernels
+# see a uniform element type.
+#
+# Cavaglieri, D. and Bewley, T., 2015. Low-storage implicit/explicit
+# Runge–Kutta schemes for the simulation of stiff high-dimensional ODE
+# systems. Journal of Computational Physics, 286, pp. 172–193.
 
 # ~ IMEXRKCB2
 const CB2_I = Tableau([0//1  0//1  0//1;
@@ -153,7 +234,8 @@ const CB4_E = Tableau([0//1                          0//1                       
                       [5590918588//49191225249,      92380217342//122399335103,   -29257529014//55608238079,    -126677396901//66917692409,    384446411890//169364936833,  58325237543//207682037557],
                       [0,                            1//4,                         3//4,                         3//8,                         1//2,                        1//1])
 
-# PR to add more are welcome! Defaults to Float64: FIXME
+# PR to add more are welcome! Defaults to Float64.
+# FIXME: revisit when an adaptive variant with embedded error estimation is added.
 const CB2  = convert(IMEXTableau{Float64, 3}, IMEXTableau(CB2_I,   CB2_E))
 const CB3c = convert(IMEXTableau{Float64, 4}, IMEXTableau(CB3c_I, CB3c_E))
 const CB3e = convert(IMEXTableau{Float64, 4}, IMEXTableau(CB3e_I, CB3e_E))

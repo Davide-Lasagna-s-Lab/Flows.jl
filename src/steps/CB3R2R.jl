@@ -173,19 +173,29 @@ for (name, tab, NS) in zip((:CB3R2R2, :CB3R2R3e, :CB3R2R3c),
 end
 
 @doc """
-    CB3R2R2(x::X, mode::AbstractMode=NormalMode())
+    CB3R2R2(x::X, mode::AbstractMode = NormalMode()) -> CB3R2R2
 
-Constructs a `CB3R2R2` integration scheme object for integration with mode `mode`.
+Construct the three-register, three-stage, second-order implicit-explicit
+Runge–Kutta scheme of Cavaglieri & Bewley (2015). The number of stage
+buffers preallocated from the template `x` depends on `mode`: `3` for
+[`NormalMode`](@ref), `4` for [`ContinuousMode`](@ref), `6` for
+[`DiscreteMode`](@ref).
 """ CB3R2R2
 
 @doc """
-    CB3R2R3e(x::X, mode::AbstractMode=NormalMode())
+    CB3R2R3e(x::X, mode::AbstractMode = NormalMode()) -> CB3R2R3e
 
-Constructs a `CB3R2R3e` integration scheme object for integration with mode `mode`.
+Construct the three-register, four-stage, third-order ("e" variant)
+IMEX Runge–Kutta scheme of Cavaglieri & Bewley (2015). See
+[`CB3R2R2`](@ref) for the meaning of `mode` and the stage-buffer
+counts.
 """ CB3R2R3e
 
 @doc """
-    CB3R2R3c(x::X, mode::AbstractMode=NormalMode())
+    CB3R2R3c(x::X, mode::AbstractMode = NormalMode()) -> CB3R2R3c
 
-Constructs a `CB3R2R3c` integration scheme object for integration with mode `mode`.
+Construct the three-register, four-stage, third-order ("c" variant)
+IMEX Runge–Kutta scheme of Cavaglieri & Bewley (2015). See
+[`CB3R2R2`](@ref) for the meaning of `mode` and the stage-buffer
+counts.
 """ CB3R2R3c
