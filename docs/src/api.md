@@ -43,9 +43,10 @@ CB3R2R3e
 CB4R3R4
 ```
 
-### Integration modes
+### Method base type and integration modes
 
 ```@docs
+Flows.AbstractMethod
 Flows.AbstractMode
 Flows.NormalMode
 Flows.ContinuousMode

@@ -14,7 +14,7 @@ When `T` is not an exact multiple of `Δt` away from `t0`, the
 iterator is *lossy*: the final pair has a smaller `dt` that ends
 precisely at `T`, ensuring `t + dt ≤ T` (or `t + dt ≥ T` when
 integrating backwards). The `isLossy` flag records this case so
-[`size`](@ref) and the last [`getindex`](@ref) can adjust.
+`size` and the last `getindex` can adjust.
 """
 struct Steps{S, R<:AbstractRange{S}} <: AbstractVector{Tuple{S, S}}
         rng::R    # underlying Julia range covering the regular steps

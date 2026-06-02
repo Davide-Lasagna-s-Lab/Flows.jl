@@ -20,7 +20,7 @@ export ContinuousMode, DiscreteMode
 """
     AbstractMode
 
-Supertype for integration-mode tags carried by [`AbstractMethod`](@ref)
+Supertype for integration-mode tags carried by [`AbstractMethod`](@ref Flows.AbstractMethod)
 subtypes. Concrete subtypes are [`NormalMode`](@ref),
 [`ContinuousMode`](@ref) and [`DiscreteMode`](@ref).
 """
