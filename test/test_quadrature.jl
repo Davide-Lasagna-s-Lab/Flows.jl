@@ -9,7 +9,7 @@
     # define some operation
     fun!(z, y) = (z .= 2 .*z .+ 1 .*y; z)
 
-    # apply 
+    # apply
     fun!(z, y)
 
     # value
@@ -18,6 +18,51 @@
 
     # allocation
     @test (@allocated fun!(z, y)) == 0
+end
+
+# ----------------------------------------------------------------------------
+# Standalone quadrature rules — trapz and simps applied directly to
+# (xs, ys) vectors, independently of the flow-based pipeline below.
+# ----------------------------------------------------------------------------
+
+@testset "trapz on a uniform grid                " begin
+    # ∫₀¹ x dx = 1/2
+    xs = collect(range(0.0, stop=1.0, length=11))
+    ys = xs
+    @test trapz(xs, ys) ≈ 0.5
+
+    # ∫₀¹ x² dx = 1/3, but trapezoidal rule has finite error on a coarse grid
+    xs = collect(range(0.0, stop=1.0, length=1001))
+    ys = xs.^2
+    @test isapprox(trapz(xs, ys), 1/3; atol=1e-6)
+end
+
+@testset "trapz on a non-uniform grid            " begin
+    # exact for linear integrands regardless of spacing
+    xs = [0.0, 0.1, 0.4, 0.7, 1.0]
+    ys = 2 .* xs .+ 1                       # ∫₀¹ (2x + 1) dx = 2
+    @test trapz(xs, ys) ≈ 2.0
+end
+
+@testset "trapz mismatched lengths errors        " begin
+    @test_throws ArgumentError trapz([1.0, 2.0], [1.0])
+end
+
+@testset "simps on a uniform grid                " begin
+    # Simpson is exact for cubic polynomials on a uniform grid
+    xs = collect(range(0.0, stop=1.0, length=101))
+    ys = xs.^3                              # ∫₀¹ x³ dx = 1/4
+    @test simps(xs, ys) ≈ 1/4 atol=1e-12
+
+    # smooth non-polynomial integrand: tight tolerance with enough points
+    xs = collect(range(0.0, stop=π, length=1001))
+    ys = sin.(xs)                           # ∫₀^π sin x dx = 2
+    @test isapprox(simps(xs, ys), 2.0; atol=1e-8)
+
+    # last-interval correction kicks in for an odd number of intervals
+    xs = collect(range(0.0, stop=1.0, length=12))  # 11 intervals
+    ys = xs.^2
+    @test isapprox(simps(xs, ys), 1/3; atol=1e-3)
 end
 
 @testset "quadrature                             " begin
