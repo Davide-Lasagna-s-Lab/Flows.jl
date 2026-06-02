@@ -16,5 +16,5 @@ makedocs(sitename = "Flows.jl",
                      "Full API"              => "api.md"])
 
 deploydocs(
-    repo = "github.com/gasagna/Flows.jl.git",
+    repo = "github.com/Davide-Lasagna-s-Lab/Flows.jl.git",
 )
