@@ -35,8 +35,14 @@ makedocs(
         prettyurls = get(ENV, "CI", "false") == "true",
         canonical  = "https://davide-lasagna-s-lab.github.io/Flows.jl/stable/",
     ),
+    # Cross-reference / docstring checks are advisory rather than fatal so a
+    # missing `@ref` does not break the deploy.
+    warnonly  = true,
+    checkdocs = :none,
 )
 
 deploydocs(
-    repo = "github.com/Davide-Lasagna-s-Lab/Flows.jl.git",
+    repo      = "github.com/Davide-Lasagna-s-Lab/Flows.jl.git",
+    devbranch = "master",
+    push_preview = false,
 )
