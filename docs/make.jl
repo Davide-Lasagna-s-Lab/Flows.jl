@@ -4,6 +4,10 @@ makedocs(
     sitename = "Flows.jl",
     modules  = [Flows],
     authors  = "Davide Lasagna",
+    # `repo` wires the "Edit on GitHub" / repository link in the page header.
+    # Documenter picks up `docs/src/assets/logo.svg` automatically and renders
+    # it in the top-left corner.
+    repo     = Remotes.GitHub("Davide-Lasagna-s-Lab", "Flows.jl"),
     pages    = [
         "Home" => "index.md",
         "Getting started" => [
