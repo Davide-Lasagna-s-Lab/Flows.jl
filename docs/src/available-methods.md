@@ -1,34 +1,34 @@
 # Available integration schemes
-Currently only a handful of integration schemes are supported. These are:
+Currently the following integration schemes are supported:
 
-  * [`RK4`](@ref), a classical fourth order Runge-Kutta method, for non-stiff problems
-  * a set of low-storage IMEX method developed by Daniele Cavaglieri and Thomas Bewley at UCSD [^1] for stiff problems, where stiffness arises from the linear term
-    * [`CB3R2R2`](@ref), a second order accurate method
-    * [`CB3R2R3e`](@ref) and [`CB3R2R3c`](@ref), two third order accurate methods 
-    * [`CB4R3R`](@ref), a fourth order accurate method
-  * [`CNRK2`](@ref), a classical second order Crank-Nicholson-Runge-Kutta method for stiff problems
+  * [`RK4`](@ref) — classical fourth-order Runge–Kutta, for non-stiff problems.
+  * A family of low-storage IMEX schemes developed by Cavaglieri and Bewley at UCSD [^1] for stiff problems, where stiffness arises from the linear term:
+    * [`CB3R2R2`](@ref), a second-order three-register scheme;
+    * [`CB3R2R3e`](@ref) and [`CB3R2R3c`](@ref), two third-order three-register schemes;
+    * [`CB4R3R4`](@ref), a fourth-order four-register scheme.
+  * [`CNRK2`](@ref) — classical second-order Crank–Nicolson / Runge–Kutta predictor–corrector for stiff problems.
 
 ## Usage
-All methods have constructors with similar signatures.
+All schemes have constructors with the same signature.
 
 ### Standard problems and coupled systems
-For standard problems including coupled systems, the constructor accepts an object of the type used to represent the state (see [Flows.jl Defining the integration scheme](@ref)). For instance, to construct an [`RK4`](@ref) object for a system defined by a $4\times 4$ Julia `Matrix` type
+For standard problems, including coupled systems, the constructor accepts an object of the type used to represent the state (see [the quick start](@ref Quick-start)). For instance, to construct an [`RK4`](@ref) object for a system defined by a $4 \times 4$ Julia `Matrix`:
 ```julia
 m = RK4(zeros(4, 4))
 ```
 
-For [Flows.jl Coupled dynamical systems](@ref), the object passed two the constructor should be a [`Coupled`](@ref) object, consistent with the state type.
+For [coupled systems](@ref Coupled-dynamical-systems), the object passed to the constructor should be a [`Coupled`](@ref) object whose components match the state type.
 
-### Linearised equations 
-For linearised equations marched over an `AbstractStorage` the constructor accepts an additional argument, depending on whether the equations correspond to a forward or adjoint problem. An `RK4` method for the forward problem with the same type as discussed before is constructed as
+### Linearised equations
+For linearised equations marched over an [`AbstractStorage`](@ref) the constructor accepts an additional argument specifying whether the equations correspond to a forward (tangent) or adjoint problem. An [`RK4`](@ref) method for the forward (tangent) problem on the same state type is constructed with
 ```julia
 m = RK4(zeros(4, 4), ContinuousMode(false))
 ```
-while for the adjoint problem
+and for the adjoint problem with
 ```julia
 m = RK4(zeros(4, 4), ContinuousMode(true))
 ```
-The object `ContinuousMode` signals that we are solving a continuous approximation of the linearised equations. Discrete adjoint solvers are planned, but not implemented yet.
+[`ContinuousMode`](@ref) signals that we are solving a continuous approximation of the linearised equations. The discretely consistent variant uses a [`RAMStageCache`](@ref) instead of a storage, and is obtained with [`DiscreteMode`](@ref). See [`AbstractMode`](@ref Flows.AbstractMode) for the full set of mode tags.
 
 ## References
-[^1] Cavaglieri, D. and Bewley, T., 2015. Low-storage implicit/explicit Runge–Kutta schemes for the simulation of stiff high-dimensional ODE systems. Journal of Computational Physics, 286, pp.172-193.
+[^1]: Cavaglieri, D. and Bewley, T., 2015. Low-storage implicit/explicit Runge–Kutta schemes for the simulation of stiff high-dimensional ODE systems. *Journal of Computational Physics*, 286, pp. 172–193.

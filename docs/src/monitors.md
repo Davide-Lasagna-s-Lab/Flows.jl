@@ -1,68 +1,65 @@
 # Monitor objects
-A `Flow` (see [Flows.jl Quickstart](@ref) for an introduction) operator simply maps a state vector forward in time by some specified amount. It operates in place, and does not store or record anything during the trajectory. However, it is sometimes useful to record some quantity, for instance one of the degrees of freedom, or maybe some integral quantity along a trajectory. This can be achieved by using a `Monitor` object.
+A [`Flow`](@ref) (see [Quick start](@ref) for an introduction) maps a state vector forward in time by some specified amount. It operates in place, and does not store or record anything during the trajectory. However, it is sometimes useful to record some quantity along a trajectory — for instance one of the degrees of freedom, or maybe some integral quantity. This is what a [`Monitor`](@ref) object is for.
 
 ## Basic usage
-The constructor of the `Monitor` type has the signature
+The constructor of the [`Monitor`](@ref) type has the signature
 ```julia
-Monitor(x::X, g::Union{Callable, Function})
+Monitor(x::X, f)
 ```
-The first argument is an object of some user defined type, say `X`, the same type used to represent the system's state. The second argument is a function or callable object that we use to 'observe' the state along the simulation. It must accept a single argument of type `X`, must have the signature
+The first argument is an object of some user-defined type `X` — the same type used to represent the system's state. The second argument is the *observable*: a function or callable object that we use to "observe" the state along the simulation. It must accept the time and the state as arguments, i.e. have the signature
 ```julia
-g(::X)
+f(t::Real, x::X)
 ```
-and can return anything. 
+and may return anything. The return value is what is actually stored, so the observable may also be used to extract a derived quantity (a norm, a component, …) rather than the full state.
 
 !!! example
-    This example demonstrates how to define an object to monitor the first state of a dynamical system with three degrees of freedom.
+    This example demonstrates how to define a monitor for the first component of a state with three degrees of freedom.
     ```julia
-    mon = Monitor(zeros(3), x->x[1])
+    mon = Monitor(zeros(3), (t, x)->x[1])
     ```
 
-    Note how the second argument is simply an anonymous function that extracts the first element. A more elegant approach is also
-    ```julia
-    mon = Monitor(zeros(3), first)
-    ```
+    Note how the observable is simply an anonymous function that ignores `t` and extracts the first element. If `t` is also of interest, just use it inside the observable.
 
-In practice, in the constructor, the function is called on the first argument, the type of the output is analysed and storage to hold more elements of the same type is allocated.
+In the constructor, the observable is called on the first argument with a dummy time `0.0`. The type of the output is inspected and storage to hold elements of the same type is allocated.
 
-To monitor an observable during a trajectory, the monitor object can be passed as a third argument to a `Flow` object. During the integration, a sample of the observable is taken at the end of every time step, including one sample at the beginning of the trajectory.
+To record an observable during a trajectory, the monitor object can be passed as an additional argument to a [`Flow`](@ref) object. During the integration a sample of the observable is taken at the end of every accepted time step, including one sample at the beginning of the trajectory.
 
 !!! example
-    For instance, assume `F` is a `Flow` object for the Lorenz equations and we want to monitor the norm of the state vector over a short trajectory from $t=0$ to $t=1$. This can be achieved by
+    Assume `F` is a [`Flow`](@ref) for the Lorenz equations and we want to record the norm of the state vector over a short trajectory from $t=0$ to $t=1$. This can be achieved by
     ```julia
-    mon = Monitor(zeros(3), norm)
+    mon = Monitor(zeros(3), (t, x)->norm(x))
     F(x, (0, 1), mon)
     ```
-    
-At the end of the integration, the content of the `Monitor` object `mon` can be accessed by two helper functions. The first
+
+At the end of the integration, the content of the [`Monitor`](@ref) object `mon` can be accessed by two helper functions. The first
 ```julia
 samples(mon)
 ```
-returns a Julia `Vector` with samples of the observed function, while 
+returns a Julia `Vector` with samples of the observable, while
 ```julia
 times(mon)
 ```
-returns a `Vector` containing the times whan the samples are taken. This can be used, for instance, to plotting the observable as a function of time.
+returns a `Vector` containing the times at which the samples were taken. These can be used, for instance, to plot the observable as a function of time.
 
 !!! note
-    The observable function can really return anything. For instance, if we want to observe the full state, we can define a monitor with the `copy` function.
+    The observable function can return anything. For instance, if we want to record the full state, we can wrap `copy`:
     ```julia
-    mon = Monitor(zeros(3), copy)
+    mon = Monitor(zeros(3), (t, x)->copy(x))
     F(x, (0, 1), mon)
     ```
 
-    If we want to monitor more quantities, we can pass a function that returns a `Tuple`, like so
+    If we want to record more quantities, we can return a `Tuple`:
     ```julia
-    mon = Monitor(zeros(3), x->(x[1], x[2]^2))
+    mon = Monitor(zeros(3), (t, x)->(x[1], x[2]^2))
     F(x, (0, 1), mon)
     ```
-    so that `samples(mon)` returns a vector of `Tuple`s.
+    so that `samples(mon)` returns a vector of `Tuple`s. Returning a `Tuple` also lets the optional [`Flows.Logger`](@ref) print each quantity in its own column.
 
 ## Monitors as callback functions
-Despite its name, a [`Monitor`](@ref) can be used to affect and modify the system state. The restriction is, of course, that any action can have effect at the end of every time step, or every `oneevery` time steps (see [`Monitor`](@ref) for usage of this keyword). For instance, one can define a monitor that normalises its input every 10 time steps by:
+Despite its name, a [`Monitor`](@ref) can be used to *modify* the system state. The restriction is, of course, that the action can only fire at the end of every time step (or every `oneevery` time steps; see [`Monitor`](@ref) for usage of this keyword). For instance, one can define a monitor that normalises its input every 10 time steps by:
 ```julia
-mon = Monitor(zeros(5), x->(x ./= norm(x)); oneevery=10)
+mon = Monitor(zeros(5), (t, x)->(x ./= norm(x)); oneevery=10)
 ```
 
 ## Advanced usage
-The behaviour of `Monitor` object can be customised more finely. Consult the [Monitor API](@ref) page for more details.
+The behaviour of [`Monitor`](@ref) objects can be customised more finely. Consult the [Monitor API](@ref) page for the full set of keyword arguments, including `savebetween`, `skipfirst`, `sizehint`, `io`, and `logevery`.

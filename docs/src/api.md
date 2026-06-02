@@ -1,43 +1,65 @@
 # Full public API
 
-## Flow operator API
-The basic building block of this package is the [`Flows.Flow`](@ref) object, a discrete approximation of the flow of a dynamical system. Here is a list of possible constructors.
+This page collects the public docstrings exported by `Flows`. For
+guided examples, start with the [Quick start](@ref) and the manual
+pages; this reference is intentionally terse.
+
+## Flow operator
+
+The basic building block of this package is the [`Flow`](@ref) object,
+a discrete approximation of the flow of a dynamical system. The
+factory function [`flow`](@ref) is the public construction entry
+point and has many overloads to cover every supported combination of
+explicit / IMEX, single-state / coupled, default / custom call
+dependency.
+
 ```@docs
 flow
 ```
 
-Objects of type `Flow` satisfy a callable interface, with additional arguments possible.
+Objects of type [`Flow`](@ref) are callable; the call syntax is
+documented on the type itself.
+
 ```@docs
 Flows.Flow
+Flows.InvalidSpanError
 ```
 
-## Monitor API
+## Coupled states
+
+```@docs
+Coupled
+couple
+couplecopy
+Flows.SymTransform
+Flows.CoupledTransform
+```
+
+## Monitors and storages
+
 ```@docs
 Monitor
 reset!
 times
 samples
-```
-
-## Coupled API
-```@docs
-Coupled
-couple
-couplecopy
-getindex
-similar
-size
-```
-
-## Storage API
-```@docs
 RAMStorage
 period
 isperiodic
 timespan
+storelast
+degree
+StoreNFromLast
 ```
 
-## Integration methods API
+## Stage caches
+
+```@docs
+AbstractStageCache
+RAMStageCache
+```
+
+## Integration methods
+
 ```@docs
 RK4
 CNRK2
@@ -48,9 +70,24 @@ CB4R3R4
 ImcA!
 ```
 
-## Time Stepping API
+## Time stepping
+
 ```@docs
 TimeStepConstant
 TimeStepFromStorage
+TimeStepFromCache
 AbstractTimeStepFromHook
+```
+
+## Call dependencies
+
+```@docs
+CallDependency
+```
+
+## Standalone quadrature rules
+
+```@docs
+Flows.trapz
+Flows.simps
 ```
