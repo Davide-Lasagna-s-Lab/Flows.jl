@@ -1,132 +1,110 @@
 # Quick start
 
-## Fundamentals
-Throughout this package we consider dynamical systems defined by an evolution equation of the type
-```math
-\dot{\mathbf{x}}(t) = \mathcal{L}\mathbf{x}(t) + \mathbf{f}(t, \mathbf{x}(t))
-```
-where $t$ is time and $\mathbf{x}$ is the state, an element of some space $\mathcal{X}$.
+This page shows the shortest path from "I have a vector field" to "I am running an integration". The example uses the classical Lorenz system, but every step transfers directly to systems of arbitrary size and structure.
 
-The operator $\mathcal{L}$ is linear and time invariant and contains stiff terms that are advanced implicitly in time. The function $\mathbf{f}(t, \mathbf{x}(t))$ is a nonlinear term that is advanced using an explicit scheme. This notation is purely operational: if the dynamical system does not have any stiff terms and can be advanced using an explicit scheme, all terms can be lumped into the function $\mathbf{f}(t, \mathbf{x}(t))$.
+If you need a deeper explanation of the design before you start, jump to [Mathematical foundations](@ref Mathematical-foundations) and [Architecture](@ref Architecture). Otherwise, follow the four steps below.
 
-In many situations in dynamical systems theory, one requires the flow of the vector field $\mathbf{f}$, the nonlinear operator $\mathbf{\Phi}^t : \mathcal{X} \mapsto \mathcal{X}$ mapping the state $\mathbf{x}_0$ at $t=t_0$ to its forward-in-time image $\mathbf{x}(t)$. Mathematically, this operation is
-```math
-\mathbf{x}(t) = \mathbf{\Phi}^{t-t_0} \mathbf{x}_0.
-```
+## 1. Define the state
 
-The structure of this package, and the API it provides, is entirely based on satisfying this flow interface, where a [`Flow`](@ref) object is constructed that acts as the time discrete version of $\mathbf{\Phi}$.
+A state in `Flows.jl` is any Julia object that satisfies two contracts: it can be `copy`-ed and `similar`-ed, and it supports in-place dot-broadcasting (`x .= a .* y .+ b .* z`). Plain Julia arrays satisfy both out of the box, so for our Lorenz state we use a length-3 `Vector{Float64}`:
 
-## User interface
-To construct a [`Flow`](@ref) object, the user needs to write Julia code for the state object $\mathbf{x}$ and for the right-hand side $\mathbf{f}$, in addition to specifying which integration scheme will be used to advance the state in time.
-
-### Defining state objects
-The package works transparently on state objects `x` of arbitrary Julia type, say objects of some user defined Julia type `X` that may loosely map to their mathematical equivalent $\mathcal{X}$ and which may provide some advanced API.
-
-State objects represented by a standard Julia `AbstractArray` (of any dimension) work out-of-the-box. However, requiring all computations to be expressed in terms of objects of type `AbstractArray` (or even just `Vector`) can be restrictive in practice and would not leverage the multiple-dispatch capabilities of Julia. As an example, consider solving a time-dependent partial differential equation over a one-dimensional domain using a Fourier–Galerkin method. The user might wish to define a `SpectralField` type representing fields, with a custom API for, e.g., computing the derivative field:
 ```julia
-struct SpectralField{T<:AbstractFloat}
-    data::Vector{Complex{T}}
+x = zeros(3)
+```
+
+User-defined types (a `SpectralField`, a `Grid`, …) also work as long as they satisfy these two contracts. See [States and vector fields](@ref States-and-vector-fields).
+
+## 2. Define the vector field
+
+The vector field is any callable with signature
+
+```julia
+f(t::Real, x, dxdt) -> dxdt
+```
+
+It must overwrite `dxdt` with `dx/dt` evaluated at `(t, x)`. It must not mutate `x`. For Lorenz:
+
+```julia
+struct Lorenz
+    ρ::Float64
 end
 
-ddx(u::SpectralField) = # some definitions
+function (eq::Lorenz)(t, x, dxdt)
+    σ, β = 10.0, 8/3
+    dxdt[1] = σ * (x[2] - x[1])
+    dxdt[2] = eq.ρ * x[1] - x[2] - x[1]*x[3]
+    dxdt[3] = -β * x[3] + x[1]*x[2]
+    return dxdt
+end
 ```
 
-To work with the package, user types should satisfy these two requirements:
+There is no requirement to use a `struct`: a plain function or a closure works equally well. The `struct` is useful when the right-hand side carries parameters or owns auxiliary buffers.
 
-  * Support dot-broadcasting in in-place algebraic expressions including scalars and objects of the same type. For instance, notation like `x .= 3.0.*y .+ 4.0.*z` for three elements `x`, `y` and `z` of the user type should be supported.
-  * Provide methods for `Base.similar(x)` and `Base.copy(x)`.
+## 3. Build the flow operator
 
-Internally, the package makes extensive use of the dot notation when updating cache objects during a time step. This restriction prevents using immutable `StaticArrays` objects as state objects, which would probably lead to faster code on small problems. This is less important for the intended applications of this package — turbulent flow simulations where the state is generally given by multiple large three-dimensional arrays and having mutable objects is important for performance.
+Bundle a vector field, an integration scheme, and a time-stepping policy into a [`Flow`](@ref):
 
-### Defining the right hand side
-Given a state `x` as an object of type `X`, the steps required to specify the right-hand side depend on whether an explicit or semi-implicit integration method is used.
-
-For explicit methods, a dynamical system is specified by a Julia function or some other callable object that has a method with signature
 ```julia
-f(t::Real, x::X, dxdt::X) where {X}
+using Flows
+
+F = flow(Lorenz(28.0), RK4(zeros(3)), TimeStepConstant(1e-2))
 ```
-This function is supposed to operate in place and should modify the content of the third argument `dxdt` with the time derivative at `x` and, if needed, time `t`. Modifying the content of the second argument in the body of this function is undefined behaviour.
 
-!!! example
-    Consider defining a custom type implementing the right-hand side of the Lorenz equations. A Julia type is defined with one field for the parameter $\rho$:
-    ```julia
-    struct Lorenz
-        ρ::Float64
-        Lorenz(ρ::Real = 28.0) = new(ρ)
-    end
-    ```
+The pieces:
 
-    Then the type is made callable by defining the following method:
-    ```julia
-    function (eq::Lorenz)(t, u, dudt)
-        x, y, z = u
-        dudt[1] =  10 * (y - x)
-        dudt[2] =  eq.ρ *  x - y - x*z
-        dudt[3] = -8/3 * z + x*y
-        return dudt
-    end
-    ```
+- `Lorenz(28.0)` is the right-hand side.
+- `RK4(zeros(3))` is the integration scheme. Passing `zeros(3)` tells the scheme to preallocate its internal stage buffers as `Vector{Float64}` of length `3`, matching the state.
+- `TimeStepConstant(1e-2)` is the time-stepping policy: march with a fixed `Δt = 0.01`.
 
-    Note how this function returns the argument that has been modified. This is not required by the package API, but can be useful in other situations.
+`F` is callable.
 
-The semi-implicit methods that are currently implemented assume that the stiff term is linear and given by a time-invariant operator $\mathcal{L}$. To define this term, the user must define a Julia type, say `A`, with a method for the `LinearAlgebra` function `mul!`, with signature
+## 4. Run the integration
+
 ```julia
-LinearAlgebra.mul!(out::X, a::A, x::X)
+x = rand(3)
+F(x, (0.0, 50.0))    # advances x in place from t=0 to t=50
 ```
-which computes the action of `a` on `x` and stores it in `out`. Modifying the content of `x` is undefined behaviour.
 
-In addition, the type `A` should have a method for the function [`Flows.ImcA!`](@ref) provided by this package, with signature
+`x` is overwritten with the state at `T = 50`. Nothing is allocated on the hot path — the scheme reuses its internal buffers, and the time loop walks an iterator-of-`(t, Δt)` pairs that has no heap footprint of its own.
+
+## Compose with a monitor
+
+To record samples along the trajectory, attach a [`Monitor`](@ref):
+
 ```julia
-Flows.ImcA!(a::A, c::Real, y::X, z::X)
+using LinearAlgebra
+
+x   = rand(3)
+mon = Monitor(x, (t, x) -> norm(x))   # observable = state norm
+F(x, (0.0, 50.0), mon)
+
+samples(mon)   # Vector{Float64} of norms, one per accepted step
+times(mon)     # corresponding times
 ```
-which solves the linear system
-```math
-    (I - c\,a)\,z = y
-```
-for some right-hand side `y` of type `X` and a scalar `c`, and stores the result in `z` (also of type `X`). The function name should be read "I-minus-cee-A".
 
+The observable is any callable `f(t, x)`. Its return value is what gets stored; the storage element type is inferred at monitor construction time.
 
-### Defining the integration scheme
-Performing a time step typically requires temporary objects for intermediate computations, e.g. the internal stages of a Runge–Kutta method. In this package, these temporary objects are pre-allocated by creating a helper object — an instance of one of the concrete subtypes of [`Flows.AbstractMethod`](@ref) provided by the package (see [Available integration schemes](@ref)).
+## Compose with a storage
 
-All constructors of such helper objects have the same signature and require a single argument of type `X`. This argument is used internally in the constructor to pre-allocate as many `similar` objects as needed for the intermediate computations in the time step.
+If you need to *replay* the trajectory later (e.g. to drive a linearised solve), use a [`RAMStorage`](@ref) instead of (or in addition to) a monitor:
 
-!!! example
-    Consider using the classical fourth-order Runge–Kutta method to integrate the Lorenz equations defined above. The state vector is implemented using a standard Julia `Vector` of three elements, and the helper object is constructed by
-    ```julia
-    method = RK4(zeros(3))
-    ```
-
-### Defining the time stepping method
-Once the integration scheme is defined, the user needs to specify a time-stepping method. This is a specification of how time steps should be selected to advance the state forward in time. This package provides several methods, but for the purpose of this quick start document we only describe one of the most-used, [`TimeStepConstant`](@ref). As the name suggests, this method indicates that the time step should be constant and equal to a value specified at construction:
 ```julia
-steps = TimeStepConstant(0.1)
+x     = rand(3)
+store = RAMStorage(x)
+F(x, (0.0, 50.0), store)
+
+times(store)    # sampled times
+samples(store)  # state snapshots
 ```
-which signals that a constant time step $\Delta t = 0.1$ will be used in the integration.
 
-## Finally defining the flow operator
-With state, dynamical system, integration method and time stepping defined, we are finally ready to define the flow operator. This is achieved by using the [`flow`](@ref) function, which constructs a [`Flow`](@ref) object. It has two basic methods, with signatures
-```julia
-flow(f, method::AbstractMethod, stepping::AbstractTimeStepping)
-flow(f, L,  method::AbstractMethod, stepping::AbstractTimeStepping)
-```
-for problems that are integrated using explicit or semi-implicit methods, respectively.
+A populated storage is callable: `store(out, t)` interpolates the trajectory at any `t` in `timespan(store)`, writing into the preallocated buffer `out`. This is the entry point for the continuous tangent / adjoint integrators of [Linearised dynamics](@ref Linearised-dynamics).
 
-A [`Flow`](@ref) object is callable with the signature
-```julia
-(::Flow)(x::X, span::Tuple{Real, Real})
-```
-and propagates the state object `x` from time `span[1]` to a later time `span[2]`, returning its first argument. The key observation is that for performance reasons the flow operator operates in place and overwrites its first argument.
+## Next steps
 
-!!! example
-    This example demonstrates how to construct a [`Flow`](@ref) object approximating the flow of the Lorenz equations (defined above) using a classical fourth-order Runge–Kutta scheme with constant time step $\Delta t = 10^{-2}$.
+You now have the full picture of the "forward" interface. The rest of the manual unpacks each piece, and adds:
 
-    The flow object is constructed by
-    ```julia
-    F = flow(Lorenz(28), RK4(zeros(3)), TimeStepConstant(1e-2))
-    ```
-
-    A point on the attractor can be then obtained by propagating a random initial condition by some amount of time:
-    ```julia
-    x = F(rand(3), (0, 100))
-    ```
+- IMEX schemes for stiff problems — see [Integration schemes](@ref Integration-schemes).
+- Coupling several state components — see [Coupled systems](@ref Coupled-systems).
+- Recording stage values for discretely consistent linearisation — see [Trajectory data](@ref Trajectory-data) and [Linearised dynamics](@ref Linearised-dynamics).
+- Computing trajectory integrals — see [Quadrature equations](@ref Quadrature-equations).
+- Worked end-to-end examples — see the [Cookbook](@ref Cookbook).
