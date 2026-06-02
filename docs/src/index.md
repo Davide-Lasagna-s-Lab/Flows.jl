@@ -1,4 +1,11 @@
 # Flows.jl
+
+```@raw html
+<p align="center">
+  <img src="assets/logo.svg" alt="Flows.jl logo" width="640">
+</p>
+```
+
 A flow-like API to solve differential equations.
 
 ## Rationale
