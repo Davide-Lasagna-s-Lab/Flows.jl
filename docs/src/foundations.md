@@ -41,7 +41,7 @@ The two-parameter family $\{\Phi^{\,\tau}\}_{\tau\ge 0}$ inherits the **semigrou
 
 which is the structural reason every algorithm that walks a trajectory in pieces (shooting, time-marching, sub-stepping) is expressible in terms of $\Phi^{\,\tau}$ alone.
 
-A [`Flow`](@ref) is a **discrete approximation** of $\Phi^{\,\tau}$: it is a callable object built around a one-step scheme `step!` and a time-step iterator that subdivides $\tau$.
+A [`Flows.Flow`](@ref Flows.Flow) is a **discrete approximation** of $\Phi^{\,\tau}$: it is a callable object built around a one-step scheme `step!` and a time-step iterator that subdivides $\tau$.
 
 ```julia
 F = flow(f, RK4(zeros(3)), TimeStepConstant(0.01))
@@ -77,7 +77,7 @@ which, rearranged, requires solving the linear problem
 
 The user supplies $\mathcal{L}$ via its action `mul!(out, A, x)` and a method for [`ImcA!`](@ref) that solves $(I - c\mathcal{L})\mathbf{z} = \mathbf{y}$. The constant $c$ depends on the scheme and the stage; both the schemes and the solver are oblivious to its value, so the user writes a single $c$-parameterised routine that the integrator drives.
 
-The implemented tableaux are stored in `src/tableaux.jl` as exact rationals and converted to `Float64` once at module load. See [Integration schemes](@ref Integration-schemes) for the catalogue.
+The implemented tableaux are stored in `src/tableaux.jl` as exact rationals and converted to `Float64` once at module load. See [Integration schemes](schemes.md) for the catalogue.
 
 ## Tangent equations
 
@@ -97,7 +97,7 @@ J^{\,\tau}(\mathbf{x}_0) \;=\; \frac{\partial\,\Phi^{\,\tau}}{\partial\mathbf{x}
 
 so that $\mathbf{y}(t_0+\tau) = J^{\,\tau}\!(\mathbf{x}_0)\,\mathbf{y}_0$. `Flows.jl` does not build $J^{\,\tau}$ as a matrix; instead it constructs a tangent flow operator whose action on $\mathbf{y}_0$ is the matrix–vector product $J^{\,\tau}\mathbf{y}_0$.
 
-Two tangent integration paths are provided. They are *discrete* (replay the primal stages stored in a [`RAMStageCache`](@ref)) or *continuous* (interpolate the primal trajectory from a [`RAMStorage`](@ref)); see [Linearised dynamics](@ref Linearised-dynamics) for the trade-offs.
+Two tangent integration paths are provided. They are *discrete* (replay the primal stages stored in a [`RAMStageCache`](@ref)) or *continuous* (interpolate the primal trajectory from a [`RAMStorage`](@ref)); see [Linearised dynamics](linearised.md) for the trade-offs.
 
 ## Adjoint equations
 
@@ -115,7 +115,7 @@ The adjoint state $\mathbf{p}(t)$ obeys the **adjoint equation**
 
 which differs from the tangent equation in three ways: it runs **backwards in time** (initial condition specified at $t=T$), it uses the **transpose of the Jacobian**, and it depends on the same primal trajectory $\mathbf{x}(t)$.
 
-Adjoint methods are the workhorse of gradient-based optimisation in dynamical systems: one backward sweep yields the gradient of an objective $\mathcal{J}(\mathbf{x}_0)$ with respect to **all** components of $\mathbf{x}_0$ at the cost of roughly one extra forward integration, regardless of the dimension of $\mathcal{X}$. See the Lorenz adjoint sensitivity entry in the [Cookbook](@ref Cookbook) for an end-to-end derivation.
+Adjoint methods are the workhorse of gradient-based optimisation in dynamical systems: one backward sweep yields the gradient of an objective $\mathcal{J}(\mathbf{x}_0)$ with respect to **all** components of $\mathbf{x}_0$ at the cost of roughly one extra forward integration, regardless of the dimension of $\mathcal{X}$. See the Lorenz adjoint sensitivity entry in the [Cookbook](cookbook.md) for an end-to-end derivation.
 
 ### Discrete vs continuous adjoints
 
@@ -123,8 +123,8 @@ A continuous adjoint is the analytical derivation above, discretised on the inte
 
 `Flows.jl` supports both:
 
-- [`ContinuousMode`](@ref)`(true)` selects the continuous adjoint, driven by an interpolant over a [`RAMStorage`](@ref).
-- [`DiscreteMode`](@ref)`(true)` selects the discrete adjoint, driven by stage values stored in a [`RAMStageCache`](@ref).
+- [`ContinuousMode`](@ref Flows.ContinuousMode)`(true)` selects the continuous adjoint, driven by an interpolant over a [`RAMStorage`](@ref).
+- [`DiscreteMode`](@ref Flows.DiscreteMode)`(true)` selects the discrete adjoint, driven by stage values stored in a [`RAMStageCache`](@ref).
 
 When the downstream optimisation algorithm relies on the gradient being an *exact* derivative of the **discretised** objective (e.g. line searches with strict Armijo conditions, second-order methods), the discrete adjoint is the safer choice. Otherwise the continuous adjoint is usually fine and is much cheaper in memory when the storage degree is low.
 
@@ -141,7 +141,7 @@ I(T) = \int_{t_0}^{T} g\bigl(\mathbf{x}(t)\bigr)\,\mathrm{d}t.
 1. **Couple the quadrature into the system.** Append a new component $I(t)\in\mathbb{R}^m$ whose dynamics are $\dot{I}(t) = g(\mathbf{x}(t))$, and integrate the augmented state $(\mathbf{x},\,I)$ as a [`Coupled`](@ref). The integral converges at the order of the time integrator. This is the preferred path.
 2. **Post-process samples.** Record $g(\mathbf{x}(t))$ in a [`Monitor`](@ref) and apply [`trapz`](@ref Flows.trapz) or [`simps`](@ref Flows.simps) at the end. Convenient when $g$ is decided after the integration is done, but the order of accuracy is fixed by the quadrature rule, not the time integrator.
 
-The coupled path is treated in [Quadrature equations](@ref Quadrature-equations).
+The coupled path is treated in [Quadrature equations](quadrature.md).
 
 ## Symmetry transformations
 
@@ -153,7 +153,7 @@ Some dynamical systems are equivariant under a continuous group action: if $g_s 
 
 A common use case is reducing a translation- or rotation-invariant problem by post-composing the flow with a symmetry parameterised by a phase $s$ chosen by the user — e.g. to track a relative periodic orbit.
 
-`Flows.jl` accepts an optional callable `sym(x, s)` at flow-construction time that is applied to the post-integration state. The wrapper is [`Flows.SymTransform`](@ref) for single states and [`Flows.CoupledTransform`](@ref) for coupled states. See [Symmetry transformations](@ref Symmetry-transformations) for the workflow.
+`Flows.jl` accepts an optional callable `sym(x, s)` at flow-construction time that is applied to the post-integration state. The wrapper is [`Flows.SymTransform`](@ref) for single states and [`Flows.CoupledTransform`](@ref) for coupled states. See [Symmetry transformations](symmetry.md) for the workflow.
 
 ## Notation used in the rest of the manual
 
@@ -170,4 +170,4 @@ A common use case is reducing a translation- or rotation-invariant problem by po
 | $I(T)$               | Trajectory integral                                                           | coupled component or post-hoc `trapz`/`simps`            |
 | $g_s$                | Symmetry action with parameter $s$                                            | `sym(x, s)` callable wrapped in `SymTransform`           |
 
-With the equations and the mapping to code in hand, the next page — [Architecture](@ref Architecture) — describes how these pieces fit together inside a single [`Flow`](@ref) object.
+With the equations and the mapping to code in hand, the next page — [Architecture](architecture.md) — describes how these pieces fit together inside a single [`Flows.Flow`](@ref Flows.Flow) object.

@@ -2,7 +2,7 @@
 
 This page shows the shortest path from "I have a vector field" to "I am running an integration". The example uses the classical Lorenz system, but every step transfers directly to systems of arbitrary size and structure.
 
-If you need a deeper explanation of the design before you start, jump to [Mathematical foundations](@ref Mathematical-foundations) and [Architecture](@ref Architecture). Otherwise, follow the four steps below.
+If you need a deeper explanation of the design before you start, jump to [Mathematical foundations](foundations.md) and [Architecture](architecture.md). Otherwise, follow the four steps below.
 
 ## 1. Define the state
 
@@ -12,7 +12,7 @@ A state in `Flows.jl` is any Julia object that satisfies two contracts: it can b
 x = zeros(3)
 ```
 
-User-defined types (a `SpectralField`, a `Grid`, …) also work as long as they satisfy these two contracts. See [States and vector fields](@ref States-and-vector-fields).
+User-defined types (a `SpectralField`, a `Grid`, …) also work as long as they satisfy these two contracts. See [States and vector fields](states.md).
 
 ## 2. Define the vector field
 
@@ -42,7 +42,7 @@ There is no requirement to use a `struct`: a plain function or a closure works e
 
 ## 3. Build the flow operator
 
-Bundle a vector field, an integration scheme, and a time-stepping policy into a [`Flow`](@ref):
+Bundle a vector field, an integration scheme, and a time-stepping policy into a [`Flows.Flow`](@ref Flows.Flow):
 
 ```julia
 using Flows
@@ -97,14 +97,14 @@ times(store)    # sampled times
 samples(store)  # state snapshots
 ```
 
-A populated storage is callable: `store(out, t)` interpolates the trajectory at any `t` in `timespan(store)`, writing into the preallocated buffer `out`. This is the entry point for the continuous tangent / adjoint integrators of [Linearised dynamics](@ref Linearised-dynamics).
+A populated storage is callable: `store(out, t)` interpolates the trajectory at any `t` in `timespan(store)`, writing into the preallocated buffer `out`. This is the entry point for the continuous tangent / adjoint integrators of [Linearised dynamics](linearised.md).
 
 ## Next steps
 
 You now have the full picture of the "forward" interface. The rest of the manual unpacks each piece, and adds:
 
-- IMEX schemes for stiff problems — see [Integration schemes](@ref Integration-schemes).
-- Coupling several state components — see [Coupled systems](@ref Coupled-systems).
-- Recording stage values for discretely consistent linearisation — see [Trajectory data](@ref Trajectory-data) and [Linearised dynamics](@ref Linearised-dynamics).
-- Computing trajectory integrals — see [Quadrature equations](@ref Quadrature-equations).
-- Worked end-to-end examples — see the [Cookbook](@ref Cookbook).
+- IMEX schemes for stiff problems — see [Integration schemes](schemes.md).
+- Coupling several state components — see [Coupled systems](coupled.md).
+- Recording stage values for discretely consistent linearisation — see [Trajectory data](trajectories.md) and [Linearised dynamics](linearised.md).
+- Computing trajectory integrals — see [Quadrature equations](quadrature.md).
+- Worked end-to-end examples — see the [Cookbook](cookbook.md).

@@ -1,6 +1,6 @@
 # Symmetry transformations
 
-Many dynamical systems are *equivariant* under a continuous group action: a Galilean translation, a phase rotation, a spatial shift. The flow of such a system intertwines with the group action, and any algorithm that walks the state space modulo this action benefits from the ability to *apply the symmetry as part of the flow*. `Flows.jl` provides exactly this: an optional symmetry-transformation callable attached to every [`Flow`](@ref) that is applied (or not) at each call.
+Many dynamical systems are *equivariant* under a continuous group action: a Galilean translation, a phase rotation, a spatial shift. The flow of such a system intertwines with the group action, and any algorithm that walks the state space modulo this action benefits from the ability to *apply the symmetry as part of the flow*. `Flows.jl` provides exactly this: an optional symmetry-transformation callable attached to every [`Flows.Flow`](@ref Flows.Flow) that is applied (or not) at each call.
 
 This page explains the math, the API, and the patterns that show up in practice.
 
@@ -72,10 +72,6 @@ The choice of wrapper is made by the appropriate `flow` overload:
 
 You never instantiate either wrapper yourself in normal use; the public API is just the `sym` callable.
 
-```@docs
-Flows.SymTransform
-Flows.CoupledTransform
-```
 
 ## Patterns
 
@@ -137,6 +133,6 @@ is generally not the same as a single call $g_{s_1+s_2}\,\Phi^{\,\tau_1+\tau_2}$
 
 ## Cross-references
 
-- [Architecture](@ref Architecture) — how the symmetry wrapper fits into the four-axis decomposition of `Flow`.
-- [Coupled systems](@ref Coupled-systems) — `CoupledTransform` builds on the `Coupled` machinery.
-- [Cookbook](@ref Cookbook) — symmetry-reduced flow on a 1D PDE.
+- [Architecture](architecture.md) — how the symmetry wrapper fits into the four-axis decomposition of `Flow`.
+- [Coupled systems](coupled.md) — `CoupledTransform` builds on the `Coupled` machinery.
+- [Cookbook](cookbook.md) — symmetry-reduced flow on a 1D PDE.

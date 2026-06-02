@@ -77,7 +77,7 @@ Coupling has three concrete advantages over a post-processing rule:
 2. **Same time grid.** The samples that feed the integrand are exactly the values the primal scheme computes anyway. There is no separate sampling decision.
 3. **Memory.** A coupled integration carries one extra small component. A post-hoc rule requires storing every sampled value of the observable in a `Monitor` until the end.
 
-The cookbook example *Lyapunov exponent of the Lorenz attractor* uses the coupling idiom to integrate a logarithmic growth rate — see the [Cookbook](@ref Cookbook).
+The cookbook example *Lyapunov exponent of the Lorenz attractor* uses the coupling idiom to integrate a logarithmic growth rate — see the [Cookbook](cookbook.md).
 
 ## Monitoring the quadrature
 
@@ -126,17 +126,11 @@ The composite trapezoidal rule over (possibly non-uniform) intervals:
 
 Exact for piecewise-linear integrands, $O(h^2)$ error for smooth ones. Robust and never produces a negative weight.
 
-```@docs
-Flows.trapz
-```
 
 ### `simps`
 
 The composite Simpson rule with a quadratic correction for the last interval when the number of intervals is odd. Exact for cubics on a uniform grid, $O(h^4)$ for smooth integrands.
 
-```@docs
-Flows.simps
-```
 
 ### Choosing between the two
 
@@ -153,6 +147,6 @@ If accuracy matters, prefer the coupled approach over either post-hoc rule.
 
 ## Cross-references
 
-- [Coupled systems](@ref Coupled-systems) — call-dependency rules for the coupled idiom.
-- [Trajectory data](@ref Trajectory-data) — monitors and storages for sampling along a trajectory.
-- [Cookbook](@ref Cookbook) — worked examples of the coupling pattern.
+- [Coupled systems](coupled.md) — call-dependency rules for the coupled idiom.
+- [Trajectory data](trajectories.md) — monitors and storages for sampling along a trajectory.
+- [Cookbook](cookbook.md) — worked examples of the coupling pattern.

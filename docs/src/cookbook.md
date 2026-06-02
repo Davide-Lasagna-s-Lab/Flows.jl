@@ -186,7 +186,7 @@ This uses every coupled-system feature: the call-dependency override, the per-co
 
 ## Discrete adjoint sensitivity for an optimal-control problem
 
-A textbook adjoint sensitivity computation, derived in detail in the *adjoint sensitivity* section of [Mathematical foundations](@ref Mathematical-foundations). The objective is
+A textbook adjoint sensitivity computation, derived in detail in the *adjoint sensitivity* section of [Mathematical foundations](foundations.md). The objective is
 
 ```math
 \mathcal{J}(\mathbf{x}_0) = \int_0^T \sin\bigl(x(t)\bigr)\,\mathrm{d}t,
@@ -270,12 +270,12 @@ F   = flow(src, L, CNRK2(zeros(ComplexF64, N)), TimeStepConstant(1e-2))
 F(û, (0.0, 1.0))
 ```
 
-`Diagonal` is the only out-of-the-box linear operator. For non-diagonal stiff parts (a real tridiagonal Laplacian, a banded matrix, …) the user provides a `struct`, a `LinearAlgebra.mul!` method, and an `ImcA!` method that solves $(I - c\mathcal{L})\,\mathbf{z} = \mathbf{y}$. See [States and vector fields](@ref States-and-vector-fields).
+`Diagonal` is the only out-of-the-box linear operator. For non-diagonal stiff parts (a real tridiagonal Laplacian, a banded matrix, …) the user provides a `struct`, a `LinearAlgebra.mul!` method, and an `ImcA!` method that solves $(I - c\mathcal{L})\,\mathbf{z} = \mathbf{y}$. See [States and vector fields](states.md).
 
 ---
 
 ## Further reading
 
-- [Mathematical foundations](@ref Mathematical-foundations) for the equations behind the examples.
-- [Linearised dynamics](@ref Linearised-dynamics) for the full discussion of the discrete-vs-continuous adjoint choice.
-- [Architecture](@ref Architecture) and [Internals](@ref Internals) for the implementation details exposed by these examples.
+- [Mathematical foundations](foundations.md) for the equations behind the examples.
+- [Linearised dynamics](linearised.md) for the full discussion of the discrete-vs-continuous adjoint choice.
+- [Architecture](architecture.md) and [Internals](internals.md) for the implementation details exposed by these examples.

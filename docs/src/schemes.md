@@ -1,6 +1,6 @@
 # Integration schemes
 
-`Flows.jl` ships six concrete schemes: one classical explicit method and five implicit-explicit (IMEX) methods. They all share the same constructor shape and the same `step!` contract, so a flow is built by picking the scheme that matches the *stiffness* and the *accuracy* of the problem at hand. The schemes themselves are dumb data carriers — they hold preallocated stage buffers and implement `step!` — and they compose freely with any of the [Time stepping](@ref Time-stepping) policies.
+`Flows.jl` ships six concrete schemes: one classical explicit method and five implicit-explicit (IMEX) methods. They all share the same constructor shape and the same `step!` contract, so a flow is built by picking the scheme that matches the *stiffness* and the *accuracy* of the problem at hand. The schemes themselves are dumb data carriers — they hold preallocated stage buffers and implement `step!` — and they compose freely with any of the [Time stepping](time-stepping.md) policies.
 
 This page catalogues the schemes, gives the trade-offs that should drive the choice between them, and documents the memory footprint of each.
 
@@ -27,7 +27,7 @@ SCHEME(x::X, mode::AbstractMode = NormalMode()) -> SCHEME{X, MODE, NX}
 | Argument | Role                                                                                                                                  |
 |----------|---------------------------------------------------------------------------------------------------------------------------------------|
 | `x`      | Template object used to preallocate all internal stage buffers as `similar(x)`. Locks the state type for the lifetime of the scheme.   |
-| `mode`   | An [`AbstractMode`](@ref Flows.AbstractMode) tag selecting forward / tangent / adjoint behaviour. Default is [`NormalMode`](@ref Flows.NormalMode). |
+| `mode`   | An [`Flows.AbstractMode`](@ref Flows.AbstractMode) tag selecting forward / tangent / adjoint behaviour. Default is [`NormalMode`](@ref Flows.NormalMode). |
 
 The mode controls **only** how many buffers are allocated and which `step!` method is dispatched. Constructing the same scheme with different modes is the standard way to obtain a primal flow and its tangent/adjoint companions:
 
@@ -63,9 +63,6 @@ Classical four-stage, fourth-order Runge–Kutta. The canonical default for non-
 
 Use `RK4` whenever the linear part is absent or its contribution to the stability constraint is comparable to the nonlinear part. For convection-dominated problems, the explicit-CFL constraint is essentially the same as for any other classical RK scheme.
 
-```@docs
-RK4
-```
 
 ## CNRK2 — Crank–Nicolson / Heun predictor–corrector
 
@@ -88,9 +85,6 @@ A two-stage second-order IMEX scheme: predictor with explicit Euler on $\mathbf{
 
 `CNRK2` is the right choice when you want the simplest IMEX scheme to validate a stiff problem before moving to one of the higher-order CB variants, or when third-order accuracy is not needed and you want the smallest stage count. It is also the cheapest IMEX option per step in terms of $\mathbf{f}_\mathrm{ex}$ evaluations.
 
-```@docs
-CNRK2
-```
 
 ## Cavaglieri–Bewley low-storage IMEX schemes
 
@@ -115,33 +109,21 @@ The four schemes are summarised in the table below.
 
 The cheapest of the family and the IMEX equivalent of `CNRK2` in terms of accuracy. Pick `CB3R2R2` over `CNRK2` when you want the low-storage register pattern and a slightly larger stability domain, at the price of one extra stage and an extra `ImcA!` solve per step.
 
-```@docs
-CB3R2R2
-```
 
 ### CB3R2R3e — third-order, four-stage ("e" variant)
 
 The standard recommendation as a robust third-order IMEX scheme for spatially-discretised PDEs. The "e" subscript denotes one of two third-order tableaux in the original paper.
 
-```@docs
-CB3R2R3e
-```
 
 ### CB3R2R3c — third-order, four-stage ("c" variant)
 
 The companion to `CB3R2R3e`, with a slightly different coefficient distribution that may behave better on some stiff problems. The two are interchangeable for most purposes; if `CB3R2R3e` shows accuracy degradation on your problem at moderate $\Delta t$, try `CB3R2R3c`.
 
-```@docs
-CB3R2R3c
-```
 
 ### CB4R3R4 — fourth-order, six-stage
 
 The most accurate IMEX scheme in the package. Six stages, four state-sized buffers in `NormalMode`. Worth the extra cost when fourth-order accuracy is required on a stiff problem or when long-time integrations need a low temporal error budget.
 
-```@docs
-CB4R3R4
-```
 
 ## Order verification
 
@@ -156,17 +138,17 @@ cache = RAMStageCache(nstages(RK4), zeros(3))
 F(x, (0, 1), cache)
 ```
 
-The cached stages are exactly the inputs a [`DiscreteMode`](@ref) replay of the same scheme requires; this is the mechanism by which `Flows.jl` produces *discretely consistent* tangent and adjoint integrations. See [Trajectory data](@ref Trajectory-data) and [Linearised dynamics](@ref Linearised-dynamics).
+The cached stages are exactly the inputs a [`DiscreteMode`](@ref Flows.DiscreteMode) replay of the same scheme requires; this is the mechanism by which `Flows.jl` produces *discretely consistent* tangent and adjoint integrations. See [Trajectory data](trajectories.md) and [Linearised dynamics](linearised.md).
 
 ## Memory usage
 
-The dominant memory cost of any scheme is the `store::NTuple{N, X}` of stage buffers. The cookbook example *Stiff diffusion with CNRK2* in the [Cookbook](@ref Cookbook) walks through the full state-buffer accounting for a 1D PDE example.
+The dominant memory cost of any scheme is the `store::NTuple{N, X}` of stage buffers. The cookbook example *Stiff diffusion with CNRK2* in the [Cookbook](cookbook.md) walks through the full state-buffer accounting for a 1D PDE example.
 
 If memory is a constraint, the CB family is the right starting point: their stage counts are dictated by the order, but their *buffer* counts are independent of the order. `CB3R2R3e` and `CB4R3R4` give you third- and fourth-order accuracy at the same buffer cost as a much cruder scheme.
 
 ## Cross-references
 
-- [Mathematical foundations](@ref Mathematical-foundations) — Butcher form, IMEX splitting.
-- [Time stepping](@ref Time-stepping) — picks the policy that drives the chosen scheme.
-- [Linearised dynamics](@ref Linearised-dynamics) — full discussion of tangent/adjoint modes.
-- [Internals](@ref Internals) — buffer accounting and `@generated` dispatch details.
+- [Mathematical foundations](foundations.md) — Butcher form, IMEX splitting.
+- [Time stepping](time-stepping.md) — picks the policy that drives the chosen scheme.
+- [Linearised dynamics](linearised.md) — full discussion of tangent/adjoint modes.
+- [Internals](internals.md) — buffer accounting and `@generated` dispatch details.

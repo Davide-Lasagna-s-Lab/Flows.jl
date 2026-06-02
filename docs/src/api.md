@@ -1,6 +1,6 @@
 # Full public API
 
-Public docstrings for every exported symbol, grouped by topic. For guidance on which symbols to reach for in which situation, start with the manual pages — this reference is intentionally terse.
+Docstrings for every exported and documented internal symbol, grouped by topic. For guidance on which symbol to reach for in which situation, start with the manual pages — this reference is intentionally terse.
 
 ## Flow operator
 
@@ -8,6 +8,12 @@ Public docstrings for every exported symbol, grouped by topic. For guidance on w
 flow
 Flows.Flow
 Flows.InvalidSpanError
+```
+
+## System wrapper
+
+```@docs
+Flows.System
 ```
 
 ## States and coupled states
@@ -35,7 +41,22 @@ CB3R2R2
 CB3R2R3c
 CB3R2R3e
 CB4R3R4
+```
+
+### Integration modes
+
+```@docs
+Flows.AbstractMode
+Flows.NormalMode
+Flows.ContinuousMode
+Flows.DiscreteMode
+```
+
+### IMEX implicit solves
+
+```@docs
 ImcA!
+Flows.ImcA_mul!
 ```
 
 ## Time stepping
@@ -45,6 +66,7 @@ TimeStepConstant
 TimeStepFromStorage
 Flows.TimeStepFromCache
 Flows.AbstractTimeStepFromHook
+Flows.Steps
 ```
 
 ## Monitors
@@ -55,11 +77,13 @@ reset!
 times
 samples
 StoreNFromLast
+Flows.Logger
 ```
 
 ## Storages
 
 ```@docs
+Flows.AbstractStorage
 RAMStorage
 period
 isperiodic

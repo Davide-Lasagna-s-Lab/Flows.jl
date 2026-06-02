@@ -1,6 +1,6 @@
 # Time stepping
 
-A [`Flow`](@ref) is the composition of an **integration scheme** (one step of the method) and a **time-stepping policy** (which sequence of `(t, Δt)` pairs cover the integration interval). The two are orthogonal: any policy works with any scheme. This page catalogues the policies, gives the use case for each, and shows the exact `_propagate!` body that each policy drives.
+A [`Flows.Flow`](@ref Flows.Flow) is the composition of an **integration scheme** (one step of the method) and a **time-stepping policy** (which sequence of `(t, Δt)` pairs cover the integration interval). The two are orthogonal: any policy works with any scheme. This page catalogues the policies, gives the use case for each, and shows the exact `_propagate!` body that each policy drives.
 
 ## Why the split
 
@@ -49,9 +49,6 @@ collect(Flows.Steps(0.0, 1.0, 0.3))
 
 This is the *only* behaviour that breaks the strict-constant-step invariant. It is benign because the schemes are order-$p$ on every step regardless of `Δt`, and the truncated step contributes a single extra $O(\Delta t^{p+1})$ error term to the global error.
 
-```@docs
-TimeStepConstant
-```
 
 ## Adaptive: time step from a user hook
 
@@ -71,9 +68,6 @@ F(x, (0.0, T))
 
 The hook is expected to return a **strictly positive** `Δt`; the propagation loop asserts this. When applying the hook would overshoot the requested endpoint, the step is shrunk so that the endpoint is hit exactly — there is no loss of precision at the boundary.
 
-```@docs
-Flows.AbstractTimeStepFromHook
-```
 
 ### Hook design notes
 
@@ -98,13 +92,10 @@ L(y, cache)                    # no `span`: the cache contains it
 
 The propagation loop walks `cache.ts[i], cache.Δts[i], cache.xs[i]` either forward (tangent) or in reverse (adjoint) depending on the mode tag carried by the scheme.
 
-```@docs
-Flows.TimeStepFromCache
-```
 
 ### When to use it
 
-`TimeStepFromCache` is the right answer whenever a discretely-consistent tangent or adjoint is required. The cookbook *Discrete adjoint sensitivity* in the [Cookbook](@ref Cookbook) walks through a complete example. See [Linearised dynamics](@ref Linearised-dynamics) for the comparison with the continuous alternative.
+`TimeStepFromCache` is the right answer whenever a discretely-consistent tangent or adjoint is required. The cookbook *Discrete adjoint sensitivity* in the [Cookbook](cookbook.md) walks through a complete example. See [Linearised dynamics](linearised.md) for the comparison with the continuous alternative.
 
 ## Replay: time step from a storage
 
@@ -124,13 +115,10 @@ L(y, store, (0.0, 1.0))
 Two differences from `TimeStepFromCache` are worth highlighting:
 
 1. The linearised flow chooses its **own** `Δt`. It does not have to match the primal grid. A common pattern is to record on a coarse grid and integrate the linearisation on a finer one.
-2. The result is *not* discretely consistent: the linearisation evaluates the operator at an interpolant of the primal, not at the primal's exact stage values. See [Linearised dynamics](@ref Linearised-dynamics) for what this means in practice.
+2. The result is *not* discretely consistent: the linearisation evaluates the operator at an interpolant of the primal, not at the primal's exact stage values. See [Linearised dynamics](linearised.md) for what this means in practice.
 
 The constructor validates `Δt > 0` like `TimeStepConstant`. Backward integration is again signalled by a decreasing `span`.
 
-```@docs
-Flows.TimeStepFromStorage
-```
 
 ## Putting it together
 
@@ -146,6 +134,6 @@ Adaptive linearisation and from-cache primal are not provided because they have 
 
 ## Cross-references
 
-- [Trajectory data](@ref Trajectory-data) — storages and stage caches, the data sources for the replay policies.
-- [Linearised dynamics](@ref Linearised-dynamics) — the algorithmic context that the replay policies serve.
-- [Internals](@ref Internals) — the `_propagate!` overloads, one per policy.
+- [Trajectory data](trajectories.md) — storages and stage caches, the data sources for the replay policies.
+- [Linearised dynamics](linearised.md) — the algorithmic context that the replay policies serve.
+- [Internals](internals.md) — the `_propagate!` overloads, one per policy.

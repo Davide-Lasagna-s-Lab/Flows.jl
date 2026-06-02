@@ -150,7 +150,7 @@ Three notes:
 2. **`ImcA!` should not assume `c > 0`.** Adjoint integrations pass negative `c`. Code your solver as a generic `(I - c·A)` solve.
 3. **`ImcA_mul!` has a default.** It computes $(I - c\mathcal{L})\mathbf{y}$ by calling `mul!` and then doing the axpby in place. Override only if you have a faster route.
 
-The cookbook has a [worked stiff example](@ref Cookbook).
+The cookbook has a [worked stiff example](cookbook.md).
 
 ## Coupled vector fields
 
@@ -189,7 +189,7 @@ F = flow(couple(f, g1, g2), deps,
 
 The signature of `g1` is then `g1(t, x, dxdt, y1, dy1dt)` (sees components 1 and 2), and similarly for `g2`.
 
-For the IMEX case, the linear part is also a `Coupled{N}` whose components are either a linear operator or `nothing`. `nothing` marks a component that is advanced fully explicitly — the usual case for a quadrature component. See [Coupled systems](@ref Coupled-systems).
+For the IMEX case, the linear part is also a `Coupled{N}` whose components are either a linear operator or `nothing`. `nothing` marks a component that is advanced fully explicitly — the usual case for a quadrature component. See [Coupled systems](coupled.md).
 
 ## What you do *not* have to do
 
@@ -197,6 +197,6 @@ Three things that other ODE packages require but `Flows.jl` does not:
 
 - **You do not provide an initial-condition object to a constructor.** The state is passed to the flow each time it is called, and the schemes hold only buffers, not solutions.
 - **You do not subtype `AbstractODEProblem` or similar.** There is no problem object; the vector field and the linear operator are the abstractions.
-- **You do not implement an analytical Jacobian.** The IMEX path uses the (linear) operator, not the Jacobian. The tangent and adjoint paths require a separately-defined linearisation; see [Linearised dynamics](@ref Linearised-dynamics).
+- **You do not implement an analytical Jacobian.** The IMEX path uses the (linear) operator, not the Jacobian. The tangent and adjoint paths require a separately-defined linearisation; see [Linearised dynamics](linearised.md).
 
 With states and vector fields in place, the next page describes how to pick the integration scheme that drives them.

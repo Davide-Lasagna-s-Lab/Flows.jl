@@ -79,7 +79,7 @@ flow(g::Coupled{N}, m::AbstractMethod, ts::AbstractTimeStepping, sym=nothing) wh
 """
     flow(g::Coupled{N}, spec::CallDependency{N}, m::AbstractMethod, ts::AbstractTimeStepping, sym=nothing) where {N} -> Flow
 
-Like [`flow(::Coupled, ...)`](@ref) but with an explicit
+Like the previous `flow` overload but with an explicit
 [`CallDependency`](@ref) `spec` describing how each component's
 right-hand-side depends on the other components.
 """
@@ -155,8 +155,8 @@ be passed when the flow was constructed with a non-trivial `sym`.
     (I::Flow)(x, span::NTuple{2, Real}[, s], m::AbstractMonitor)
 
 Map `x` from `span[1]` to `span[2]`, recording samples into the monitor
-`m` along the way. See [`Flows.jl Monitor objects`](@ref) for how to
-construct monitors. The optional symmetry parameter `s` is applied to
+`m` along the way. See the *Monitors* section of *Trajectory data* in the
+manual for how to construct monitors. The optional symmetry parameter `s` is applied to
 the final state, exactly as in the basic two-argument form.
 """
 (I::Flow{TS, M, S, SO})(x, span::NTuple{2, Real}, m::AbstractMonitor) where {TS, M, S, SO<:NoTransform} =
@@ -174,7 +174,8 @@ the final state, exactly as in the basic two-argument form.
 Map `x` from `span[1]` to `span[2]`, pushing the internal stage values
 of each time step into the stage cache `c`. The cache can later be used
 to replay the same time grid through a linearised system in a discretely
-consistent manner. See [`Flows.jl Stage Caches`](@ref) for details.
+consistent manner. See the *Stage caches* section of *Trajectory data*
+in the manual for details.
 """
 (I::Flow{TS, M, S, SO})(x, span::NTuple{2, Real}, c::AbstractStageCache) where {TS, M, S, SO<:NoTransform} =
     _propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, c, nothing, nothing)
@@ -192,7 +193,8 @@ Map `x` from `span[1]` to `span[2]`, pushing snapshots of the state
 into the storage `store` along the way. This is the typical way to
 build the trajectory required by a continuous adjoint/tangent
 integration: the storage acts as the source for the linear operator at
-non-grid times. See [`Flows.jl Storages`](@ref).
+non-grid times. See the *Storages* section of *Trajectory data* in the
+manual.
 """
 (I::Flow{TS, M, S, SO})(x, span::NTuple{2, Real}, store::AbstractStorage) where {TS, M, S, SO<:NoTransform} =
     _propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, nothing, store, nothing)

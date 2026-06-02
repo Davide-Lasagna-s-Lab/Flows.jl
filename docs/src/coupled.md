@@ -50,11 +50,6 @@ julia> length(z)
 
 The wrapper is itself immutable; mutating *the components* of `z` is fine, but `z[2] = ...` is not. This invariant lets the schemes treat a `Coupled` state as if it were a fixed-size container.
 
-```@docs
-Coupled
-couple
-couplecopy
-```
 
 ### Broadcasting
 
@@ -89,7 +84,7 @@ This is useful for, e.g., evolving several independent tangent perturbations of 
 
 ## Constructing a coupled flow
 
-Building a [`Flow`](@ref) on a coupled state is mechanically identical to the single-state case, with two changes:
+Building a [`Flows.Flow`](@ref Flows.Flow) on a coupled state is mechanically identical to the single-state case, with two changes:
 
 1. The right-hand-side is a `Coupled{N}` of callables, one per component.
 2. The integration scheme is constructed with a `Coupled{N}` template state, so its internal buffers are themselves `Coupled{N}`.
@@ -166,9 +161,6 @@ g2(t, x, dxdt,  y2, dy2dt)
 - every spec is sorted in increasing order,
 - the inner tuples carry **no duplicates** (sorted strict-monotone).
 
-```@docs
-CallDependency
-```
 
 ## Coupled IMEX systems
 
@@ -199,7 +191,7 @@ A few non-uses worth flagging:
 
 ## Cross-references
 
-- [States and vector fields](@ref States-and-vector-fields) — single-component requirements.
-- [Quadrature equations](@ref Quadrature-equations) — the canonical "primal + extension" coupled use case.
-- [Linearised dynamics](@ref Linearised-dynamics) — coupled primal+tangent for forward-mode sensitivity.
-- [Internals](@ref Internals) — the `@generated` broadcast machinery in `src/couple.jl`.
+- [States and vector fields](states.md) — single-component requirements.
+- [Quadrature equations](quadrature.md) — the canonical "primal + extension" coupled use case.
+- [Linearised dynamics](linearised.md) — coupled primal+tangent for forward-mode sensitivity.
+- [Internals](internals.md) — the `@generated` broadcast machinery in `src/couple.jl`.

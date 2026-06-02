@@ -18,7 +18,7 @@ A composable, allocation-aware, Julia-native framework for **flow-style numerica
 
 | Feature | Outcome |
 |---|---|
-| Callable [`Flow`](@ref) objects                  | `F(x, (t₀, T))` advances `x` in place. Composable. |
+| Callable [`Flows.Flow`](@ref Flows.Flow) objects                  | `F(x, (t₀, T))` advances `x` in place. Composable. |
 | Allocation-free hot path                         | Internal stage buffers are preallocated at scheme construction. |
 | Explicit and IMEX integrators                    | RK4 plus the low-storage Cavaglieri–Bewley IMEX family. |
 | Coupled-state support                            | `Coupled` carries `N` heterogeneous components and broadcasts elementwise. |
@@ -49,20 +49,20 @@ The documentation is organised as four layers. Read the first two in order; the 
 
 | Where to read | Why |
 |---|---|
-| [Quick start](@ref Quick-start)                                   | Land a working integration in five minutes. |
-| [Mathematical foundations](@ref Mathematical-foundations)         | Equation classes, flow operators, linearisations, the IMEX splitting. |
-| [Architecture](@ref Architecture)                                 | How `Flow`, `System`, `AbstractMethod`, `AbstractTimeStepping`, and the symmetry wrapper fit together. |
-| [States and vector fields](@ref States-and-vector-fields)         | Requirements on user types, and what callables the package expects. |
-| [Integration schemes](@ref Integration-schemes)                   | RK4, CNRK2, and the Cavaglieri–Bewley low-storage IMEX family. |
-| [Time stepping](@ref Time-stepping)                               | Constant, adaptive, stage-cache-driven, storage-driven. |
-| [Coupled systems](@ref Coupled-systems)                           | Heterogeneous multi-component states and call dependencies. |
-| [Trajectory data](@ref Trajectory-data)                           | Monitors, storages, stage caches, and how they relate. |
-| [Linearised dynamics](@ref Linearised-dynamics)                   | Tangent and adjoint integration, discrete vs continuous. |
-| [Symmetry transformations](@ref Symmetry-transformations)         | Equivariant flows under a continuous group action. |
-| [Quadrature equations](@ref Quadrature-equations)                 | Trajectory integrals as coupled components, plus post-hoc rules. |
-| [Cookbook](@ref Cookbook)                                         | End-to-end worked examples. |
-| [Internals](@ref Internals)                                       | Implementation details and design rationale. |
-| [API](@ref Full-public-API)                                       | Docstrings for every exported symbol. |
+| [Quick start](quickstart.md)                                   | Land a working integration in five minutes. |
+| [Mathematical foundations](foundations.md)         | Equation classes, flow operators, linearisations, the IMEX splitting. |
+| [Architecture](architecture.md)                                 | How `Flow`, `System`, `AbstractMethod`, `AbstractTimeStepping`, and the symmetry wrapper fit together. |
+| [States and vector fields](states.md)         | Requirements on user types, and what callables the package expects. |
+| [Integration schemes](schemes.md)                   | RK4, CNRK2, and the Cavaglieri–Bewley low-storage IMEX family. |
+| [Time stepping](time-stepping.md)                               | Constant, adaptive, stage-cache-driven, storage-driven. |
+| [Coupled systems](coupled.md)                           | Heterogeneous multi-component states and call dependencies. |
+| [Trajectory data](trajectories.md)                           | Monitors, storages, stage caches, and how they relate. |
+| [Linearised dynamics](linearised.md)                   | Tangent and adjoint integration, discrete vs continuous. |
+| [Symmetry transformations](symmetry.md)         | Equivariant flows under a continuous group action. |
+| [Quadrature equations](quadrature.md)                 | Trajectory integrals as coupled components, plus post-hoc rules. |
+| [Cookbook](cookbook.md)                                         | End-to-end worked examples. |
+| [Internals](internals.md)                                       | Implementation details and design rationale. |
+| [API](api.md)                                       | Docstrings for every exported symbol. |
 
 ## Citation
 

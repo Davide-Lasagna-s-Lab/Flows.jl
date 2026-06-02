@@ -23,7 +23,7 @@ size to a user-supplied hook called at runtime. The hook is invoked
 once per step with the current right-hand side, linear operator and
 state, and must return a positive scalar Δt.
 
-See [Flows.jl Adaptive time stepping](@ref) for the usage pattern.
+See the *Time stepping* page in the manual for the usage pattern.
 """
 abstract type AbstractTimeStepFromHook <: AbstractTimeStepping end
 

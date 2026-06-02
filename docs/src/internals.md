@@ -1,6 +1,6 @@
 # Internals
 
-This page documents the **implementation** of `Flows.jl`: data layouts, generated code, dispatch tricks, and design rationale. It is intended for contributors, users debugging a performance regression, and curious readers who already understand the user-facing API. The conceptual map of the package is on [Architecture](@ref Architecture); this page goes one level deeper.
+This page documents the **implementation** of `Flows.jl`: data layouts, generated code, dispatch tricks, and design rationale. It is intended for contributors, users debugging a performance regression, and curious readers who already understand the user-facing API. The conceptual map of the package is on [Architecture](architecture.md); this page goes one level deeper.
 
 ## Module layout
 
@@ -220,5 +220,5 @@ The test suite mirrors the source layout, so new functionality should be paired 
 
 ## Cross-references
 
-- [Architecture](@ref Architecture) — the four-axis decomposition that this page implements.
-- [API](@ref Full-public-API) — the public docstrings.
+- [Architecture](architecture.md) — the four-axis decomposition that this page implements.
+- [API](api.md) — the public docstrings.

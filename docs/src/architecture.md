@@ -51,7 +51,7 @@ Three observations:
 
 ## The System wrapper
 
-A [`Flows.System`](@ref) bundles the right-hand-side(s) `g` and the optional linear operator(s) `A`. The single-component version just stores `(g, A)`; the multi-component version stores tuples plus a [`CallDependency`](@ref) describing which components flow into which signature.
+A [`Flows.System`](@ref Flows.System) bundles the right-hand-side(s) `g` and the optional linear operator(s) `A`. The single-component version just stores `(g, A)`; the multi-component version stores tuples plus a [`CallDependency`](@ref) describing which components flow into which signature.
 
 `System` is callable. For the explicit part it walks `DEPS` at code-generation time and emits a single call to each component:
 
@@ -88,7 +88,7 @@ Every concrete scheme is a `struct ConcreteMethod{X, MODE, NX} <: AbstractMethod
 | `MODE`         | The integration mode tag (see below). Locks which `step!` is dispatched.                |
 | `NS`           | The stage count. Matched against any `AbstractStageCache` passed at integration time.   |
 
-The scheme stores all preallocated buffers in a single `NTuple{N, X}` field named `store`, where `N` depends on the scheme *and* on the mode: a `ContinuousMode` `RK4` needs an extra buffer to hold the interpolant compared with a `NormalMode` one. See [Integration schemes](@ref Integration-schemes) for the exact counts.
+The scheme stores all preallocated buffers in a single `NTuple{N, X}` field named `store`, where `N` depends on the scheme *and* on the mode: a `ContinuousMode` `RK4` needs an extra buffer to hold the interpolant compared with a `NormalMode` one. See [Integration schemes](schemes.md) for the exact counts.
 
 ### Mode tags
 

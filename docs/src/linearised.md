@@ -15,7 +15,7 @@ What sets `Flows.jl` apart is that it exposes **four distinct integration paths*
 
 ## The two equations
 
-We assume the reader has read [Mathematical foundations](@ref Mathematical-foundations); we briefly restate the equations for reference.
+We assume the reader has read [Mathematical foundations](foundations.md); we briefly restate the equations for reference.
 
 Let the primal nonlinear system be
 
@@ -196,7 +196,7 @@ F     = flow(f, RK4(zeros(3)), TimeStepConstant(0.01))
 x     = rand(3); F(x, (0.0, 1.0), store)
 ```
 
-The storage uses a Lagrange polynomial of the configured `degree` to interpolate between samples. Degree `5` is a good default; higher degree improves accuracy at the cost of stencil width near the boundaries (see [Trajectory data](@ref Trajectory-data)).
+The storage uses a Lagrange polynomial of the configured `degree` to interpolate between samples. Degree `5` is a good default; higher degree improves accuracy at the cost of stencil width near the boundaries (see [Trajectory data](trajectories.md)).
 
 ### Tangent: forward against the interpolant
 
@@ -318,11 +318,11 @@ The cookbook contains several worked examples that put these paths into practice
 - *Discrete adjoint sensitivity for an optimal-control problem* — discrete path.
 - *Continuous adjoint for a stiff diffusion problem* — continuous path.
 
-See the [Cookbook](@ref Cookbook).
+See the [Cookbook](cookbook.md).
 
 ## Cross-references
 
-- [Mathematical foundations](@ref Mathematical-foundations) — the equations and the adjoint identity.
-- [Trajectory data](@ref Trajectory-data) — `RAMStorage` and `RAMStageCache` details.
-- [Time stepping](@ref Time-stepping) — `TimeStepFromCache` and `TimeStepFromStorage` policies.
-- [Coupled systems](@ref Coupled-systems) — the call-dependency machinery used by the coupled forward path.
+- [Mathematical foundations](foundations.md) — the equations and the adjoint identity.
+- [Trajectory data](trajectories.md) — `RAMStorage` and `RAMStageCache` details.
+- [Time stepping](time-stepping.md) — `TimeStepFromCache` and `TimeStepFromStorage` policies.
+- [Coupled systems](coupled.md) — the call-dependency machinery used by the coupled forward path.

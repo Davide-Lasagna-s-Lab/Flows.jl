@@ -8,7 +8,7 @@ The forward interface of `Flows.jl` mutates a state in place and returns nothing
 | [`RAMStorage`](@ref)                  | The state (or a derived field) at each accepted step | Drives a *continuous* linearised solve   |
 | [`RAMStageCache`](@ref)               | Every internal stage value of every step             | Drives a *discretely consistent* linearised solve |
 
-A specialised [`StoreNFromLast`](@ref) monitor records a single observation at a fixed offset before the end of an integration. All four are passed to a [`Flow`](@ref) as an extra positional argument, after the state and the time span.
+A specialised [`StoreNFromLast`](@ref) monitor records a single observation at a fixed offset before the end of an integration. All four are passed to a [`Flows.Flow`](@ref Flows.Flow) as an extra positional argument, after the state and the time span.
 
 This page covers each in detail, the relationship between them, and the design choices that put them on this page together.
 
@@ -59,12 +59,6 @@ mon = Monitor(zeros(5), (t, x)->(x ./= norm(x); norm(x)); oneevery=10)
 
 The mutation is performed *before* the observable's return value is stored, so the recorded value reflects the post-mutation state.
 
-```@docs
-Monitor
-reset!
-times
-samples
-```
 
 ### `StoreNFromLast`: a specialised monitor
 
@@ -79,9 +73,6 @@ m.t                                  # the recorded time
 m.x                                  # the recorded state
 ```
 
-```@docs
-StoreNFromLast
-```
 
 ## Trajectory printing with `Logger`
 
@@ -126,7 +117,7 @@ samples(store)     # the snapshots
 timespan(store)    # (first, last) — for periodic storages, (first, period)
 ```
 
-A storage is also the data source for the *continuous* tangent / adjoint integration paths; see [Linearised dynamics](@ref Linearised-dynamics).
+A storage is also the data source for the *continuous* tangent / adjoint integration paths; see [Linearised dynamics](linearised.md).
 
 ### Interpolation
 
@@ -161,14 +152,6 @@ store(out, 2π - 1e-9)   # also fine
 
 The combination `period > 0`, `storelast = false` is the canonical setup for periodic trajectories.
 
-```@docs
-RAMStorage
-period
-isperiodic
-timespan
-storelast
-degree
-```
 
 ## Stage caches
 
@@ -219,12 +202,8 @@ A = flow(f_adjoint, RK4(zeros(3), DiscreteMode(true)), TimeStepFromCache())
 A(q, cache)               # marches q through cache.ts in reverse
 ```
 
-See [Linearised dynamics](@ref Linearised-dynamics) for the full discussion.
+See [Linearised dynamics](linearised.md) for the full discussion.
 
-```@docs
-AbstractStageCache
-RAMStageCache
-```
 
 ## Choosing among the three
 
@@ -241,6 +220,6 @@ All four can be used simultaneously, in any combination, on the same `Flow` call
 
 ## Cross-references
 
-- [Linearised dynamics](@ref Linearised-dynamics) — full algorithmic context for storages and stage caches.
-- [Time stepping](@ref Time-stepping) — `TimeStepFromStorage` and `TimeStepFromCache` policies that consume these data structures.
-- [Internals](@ref Internals) — Lagrange weight computation and storage memory layout.
+- [Linearised dynamics](linearised.md) — full algorithmic context for storages and stage caches.
+- [Time stepping](time-stepping.md) — `TimeStepFromStorage` and `TimeStepFromCache` policies that consume these data structures.
+- [Internals](internals.md) — Lagrange weight computation and storage memory layout.
