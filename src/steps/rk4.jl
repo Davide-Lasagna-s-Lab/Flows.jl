@@ -9,9 +9,17 @@ struct RK4{X, MODE, NX} <: AbstractMethod{X, MODE, 4}
 end
 
 """
-    RK4(x::X, mode::AbstractMode=NormalMode())
+    RK4(x::X, mode::AbstractMode = NormalMode()) -> RK4
 
-Constructs a `RK4` integration scheme object for integration with mode `mode`.
+Construct a classical fourth-order explicit Runge–Kutta integration
+scheme. `x` is a template object used to preallocate the internal
+stage buffers; the resulting scheme can be applied to any state of
+the same type.
+
+`mode` selects forward nonlinear ([`NormalMode`](@ref)) vs. tangent /
+adjoint linearised modes ([`ContinuousMode`](@ref) /
+[`DiscreteMode`](@ref)). The number of allocated buffers depends on
+the mode: `5` for normal, `6` for continuous.
 """
 function RK4(x::X, mode::MODE = NormalMode()) where {X, MODE<:AbstractMode}
     N = mode isa ContinuousMode ? 6 : 5

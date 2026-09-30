@@ -1,160 +1,270 @@
 export flow, InvalidSpanError
 
-# ---------------------------------------------------------------------------- #
-mutable struct Flow{TS<:AbstractTimeStepping, M<:AbstractMethod, S<:System}
+# ============================================================================
+# THE Flow TYPE
+# ============================================================================
+#
+# `Flow` is the discrete approximation of the time-forward map associated
+# with a vector field. The struct bundles four things that fully determine
+# a time integration:
+#
+#   - `tstep` (TS) : an `AbstractTimeStepping` choosing how the step size
+#                    is selected from one step to the next (constant,
+#                    hook-driven, from a stage cache, …).
+#   - `meth`  (M)  : an `AbstractMethod` carrying the integration scheme
+#                    (RK4, CNRK2, the CB schemes) together with its
+#                    preallocated stage buffers.
+#   - `sys`   (S)  : the `System` wrapping the right-hand-side(s) and the
+#                    optional linear/implicit operator(s).
+#   - `sym`   (SO) : either `nothing` (no symmetry) or one of the symmetry
+#                    transform wrappers from `couple.jl`. `Nothing`,
+#                    `SymTransform`, and `CoupledTransform` are the three
+#                    possible kinds; the absent case is always `nothing`
+#                    so the `NoTransform = Nothing` alias is exhaustive.
+
+mutable struct Flow{TS<:AbstractTimeStepping, M<:AbstractMethod, S<:System, SO}
     tstep::TS # the method used for time stepping
      meth::M  # the method, with storage, implementation and time stepping
       sys::S  # the system to be integrated
-    Flow(ts::TS, m::M, sys::S) where {TS, M, S} = new{TS, M, S}(ts, m, sys)
+      sym::SO # symmetry operator applied to the flow map (or `nothing`)
+    Flow(ts::TS, m::M, sys::S, sym::SO) where {TS, M, S, SO} = new{TS, M, S, SO}(ts, m, sys, sym)
 end
 
 """
-    flow(g, m::AbstractMethod, ts::AbstractTimeStepping)
+    flow(g, m::AbstractMethod, ts::AbstractTimeStepping, sym=nothing) -> Flow
 
-Construct an object of type `Flow`, representing the numerical dicretisation
-of the time-forward flow operator associated to the vector field `g`, using the
-integration method `m`, with time stepping provided by `ts`. This method
-should be used with an explicit integration method.
-"""
-flow(g, m::AbstractMethod, ts::AbstractTimeStepping) =
-    flow(g, nothing, m, ts)
+Construct a [`Flow`](@ref) representing the numerical discretisation of
+the time-forward operator associated with the vector field `g`. The
+integration scheme is `m` and the time-stepping policy is `ts`.
 
+This method is intended for use with explicit integration methods such
+as [`RK4`](@ref). The optional `sym` argument is a callable
+`sym(x, s)` that applies a symmetry transformation to the flow's result;
+when omitted, no transformation is applied.
 """
-    flow(g, A, m::AbstractMethod, ts::AbstractTimeStepping)
-
-Construct a flow operator associated to the vector field defined by a linear
-component `A` and a nonlinear part `g`. An implicit-explicit integration 
-method `m` should be provided. 
-"""
-flow(g, A, m::AbstractMethod, ts::AbstractTimeStepping) =
-     Flow(ts, m, System(g, A))
+flow(g, m::AbstractMethod, ts::AbstractTimeStepping, sym=nothing) =
+    flow(g, nothing, m, ts, sym)
 
 """
-    flow(g::Coupled{N}, m::AbstractMethod, ts::AbstractTimeStepping) where {N}
+    flow(g, A, m::AbstractMethod, ts::AbstractTimeStepping, sym=nothing) -> Flow
 
-Construct a flow operator associated to the composite vector field `g`, using
-a default call dependency structure, i.e. where the elements of `g` satisfy
-the calling interface:
+Construct a [`Flow`](@ref) for a system with linear part `A` and
+nonlinear part `g`. An implicit-explicit integration method `m` such as
+[`CNRK2`](@ref) or one of the `CB*` schemes should be supplied. As with
+the explicit constructor, `sym(x, s)` is optional and applied via
+[`SymTransform`](@ref) to the final state.
+"""
+flow(g, A, m::AbstractMethod, ts::AbstractTimeStepping, sym=nothing) =
+    Flow(ts, m, System(g, A), SymTransform(sym))
+
+"""
+    flow(g::Coupled{N}, m::AbstractMethod, ts::AbstractTimeStepping, sym=nothing) where {N} -> Flow
+
+Construct a [`Flow`](@ref) for a composite vector field `g` with the
+default call-dependency pattern, i.e. the right-hand sides satisfy
 
     g[1](t, u[1], dudt[1])
-    g[2](t, u[1], dudt[1], u[2], dudt[2]) ...
-    g[N](t, u[1], dudt[1], u[N], dudt[N])
+    g[2](t, u[1], dudt[1], u[2], dudt[2])
+    …
+    g[N](t, u[1], dudt[1], …, u[N], dudt[N])
 
-See [Flows.jl Call Dependencies](@ref) for more details on how to specify
-custom call dependencies. This method should be used with an explicit integrator.
+Use an explicit method such as [`RK4`](@ref). See
+[`CallDependency`](@ref) for the syntax to express non-default dependency
+patterns. The optional `sym(x, s)` is wrapped with
+[`CoupledTransform`](@ref) and applied component-wise.
 """
-flow(g::Coupled{N}, m::AbstractMethod, ts::AbstractTimeStepping) where {N} =
-     flow(g, default_dep(N), m, ts)
+flow(g::Coupled{N}, m::AbstractMethod, ts::AbstractTimeStepping, sym=nothing) where {N} =
+     flow(g, default_dep(N), m, ts, sym)
 
 """
-    flow(g::Coupled{N}, spec::CallDependency{N}, m::AbstractMethod, ts::AbstractTimeStepping) where {N}
+    flow(g::Coupled{N}, spec::CallDependency{N}, m::AbstractMethod, ts::AbstractTimeStepping, sym=nothing) where {N} -> Flow
 
-Similar to the method without `spec`, but specifying a custom call dependency structure.
+Like the previous `flow` overload but with an explicit
+[`CallDependency`](@ref) `spec` describing how each component's
+right-hand-side depends on the other components.
 """
 flow(g::Coupled{N}, spec::CallDependency{N}, m::AbstractMethod,
-                                            ts::AbstractTimeStepping) where {N} =
-     flow(g, couple(ntuple(i->nothing, N)...), spec, m, ts)
+                                            ts::AbstractTimeStepping,
+                                            sym=nothing) where {N} =
+     flow(g, couple(ntuple(i->nothing, N)...), spec, m, ts, sym)
 
 """
-    flow(g::Coupled{N}, A::Coupled{N}, m::AbstractMethod, ts::AbstractTimeStepping) where {N}
+    flow(g::Coupled{N}, A::Coupled{N}, m::AbstractMethod, ts::AbstractTimeStepping, sym=nothing) where {N} -> Flow
 
-Similar to previous methods, but also provide the linear part of the dynamical
-system. This method should be used with an implicit-explicit integrator.
+Construct an implicit-explicit [`Flow`](@ref) for a coupled system,
+using the default call-dependency pattern. `A[i]` may be `nothing` for
+components that should be advanced fully explicitly.
 """
 flow(g::Coupled{N}, A::Coupled{N}, m::AbstractMethod,
-                                  ts::AbstractTimeStepping) where {N} =
-    flow(g, A, default_dep(N), m, ts)
+                                  ts::AbstractTimeStepping,
+                                  sym=nothing) where {N} =
+    flow(g, A, default_dep(N), m, ts, sym)
 
 """
-    flow(g::Coupled{N}, A::Coupled{N}, spec::CallDependency{N}, m::AbstractMethod, ts::AbstractTimeStepping) where {N}
+    flow(g::Coupled{N}, A::Coupled{N}, spec::CallDependency{N}, m::AbstractMethod, ts::AbstractTimeStepping, sym=nothing) where {N} -> Flow
 
-Similar to previous methods, but provide a custom call dependency structure.
-This method should be used with an implicit-explicit integrator.
+Most general coupled constructor: explicit right-hand sides, linear
+operators, call dependencies, integration method, time stepping, and
+optional symmetry, all specified separately.
 """
 flow(g::Coupled{N}, A::Coupled{N}, spec::CallDependency{N},
                                       m::AbstractMethod,
-                                     ts::AbstractTimeStepping) where {N} =
-    Flow(ts, m, System(g, A, spec))
+                                     ts::AbstractTimeStepping,
+                                     sym=nothing) where {N} =
+    Flow(ts, m, System(g, A, spec), CoupledTransform(sym))
 
-# ---------------------------------------------------------------------------- #
-# FLOWS ARE CALLABLE OBJECTS: THIS IS THE MAIN INTERFACE
+
+# ============================================================================
+# Flow CALLABLE INTERFACE
+# ============================================================================
+#
+# All entry points propagate the state `x` in place. Optional positional
+# arguments select an alternative kind of integration:
+#
+#   span      — explicit `(t0, t1)` integration via the time-stepping policy
+#   m         — monitor that records observables along the way
+#   c         — stage cache that saves internal stages for later replay
+#   store     — full state storage, used to drive linearised equations later
+#   s         — symmetry parameter, only valid when `Flow.sym` is non-trivial
+#
+# The methods come in pairs: a `NoTransform`-constrained method for the
+# common "no symmetry" case, and a permissive variant that accepts a
+# symmetry argument `s` and applies `I.sym` to the result before returning.
 
 """
-    (I::Flow)(x, span::NTuple{2, Real})
+    (I::Flow)(x, span::NTuple{2, Real}[, s])
 
-Map `x` at time `span[1]` to the later time `span[2]`. 
+Map `x` from time `span[1]` to time `span[2]`, optionally applying the
+symmetry parameterised by `s` at the end.
 
-The object `x` is modified in place. The argument `x` shoule be of a type 
-compatible to that used to create the integration method object for the `Flow`
-object `I`, since the integration method contains preallocated elements used 
-to perform the integration step.
+`x` is modified in place. Its type must match the one used to construct
+the integration method, since the method object holds preallocated
+buffers of that same type. The optional symmetry parameter `s` may only
+be passed when the flow was constructed with a non-trivial `sym`.
 """
+(I::Flow{TS, M, S, SO})(x, span::NTuple{2, Real}) where {TS, M, S, SO<:NoTransform} =
+    _propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, nothing, nothing, nothing)
+
 (I::Flow)(x, span::NTuple{2, Real}) =
     _propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, nothing, nothing, nothing)
 
-"""
-    (I::Flow)(x, span::NTuple{2, Real}, m::AbstractMonitor)
+(I::Flow)(x, span::NTuple{2, Real}, s) =
+    I.sym(_propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, nothing, nothing, nothing), s)
 
-Map `x` at time `span[1]` to the later time `span[2]`, filling the monitor
-obejct `m` along the way. See [`Flow.jl Monitor objects`](@ref) for more details
-on how to define and use `Monitor` objects.
 """
+    (I::Flow)(x, span::NTuple{2, Real}[, s], m::AbstractMonitor)
+
+Map `x` from `span[1]` to `span[2]`, recording samples into the monitor
+`m` along the way. See the *Monitors* section of *Trajectory data* in the
+manual for how to construct monitors. The optional symmetry parameter `s` is applied to
+the final state, exactly as in the basic two-argument form.
+"""
+(I::Flow{TS, M, S, SO})(x, span::NTuple{2, Real}, m::AbstractMonitor) where {TS, M, S, SO<:NoTransform} =
+    _propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, nothing, nothing, m)
+
 (I::Flow)(x, span::NTuple{2, Real}, m::AbstractMonitor) =
     _propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, nothing, nothing, m)
 
-"""
-    (I::Flow)(x, span::NTuple{2, Real}, c::AbstractStageCache)
+(I::Flow)(x, span::NTuple{2, Real}, s, m::AbstractMonitor) =
+    I.sym(_propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, nothing, nothing, m), s)
 
-Map `x` at time `span[1]` to the later time `span[2]`, filling the stage cache
-object `c` along the way. See [`Flow.jl Stage Caches`](@ref) for more details
-on how to define and use `AbstractStageCache` objects.
 """
+    (I::Flow)(x, span::NTuple{2, Real}[, s], c::AbstractStageCache)
+
+Map `x` from `span[1]` to `span[2]`, pushing the internal stage values
+of each time step into the stage cache `c`. The cache can later be used
+to replay the same time grid through a linearised system in a discretely
+consistent manner. See the *Stage caches* section of *Trajectory data*
+in the manual for details.
+"""
+(I::Flow{TS, M, S, SO})(x, span::NTuple{2, Real}, c::AbstractStageCache) where {TS, M, S, SO<:NoTransform} =
+    _propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, c, nothing, nothing)
+
 (I::Flow)(x, span::NTuple{2, Real}, c::AbstractStageCache) =
     _propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, c, nothing, nothing)
 
-"""
-    (I::Flow)(x, span::NTuple{2, Real}, s::AbstractStorage)
-
-Map `x` at time `span[1]` to the later time `span[2]`, filling the storage 
-object `s` along the way. This method is used primarily to fill a storage 
-object with the results of a nonlinear simulation, where the storage `s` can
-be subsequently used for the linearised systems. See [`Flow.jl Storages`](@ref) 
-for more details on how to define and use `AbstractStorage` objects.
-"""
-(I::Flow)(x, span::NTuple{2, Real}, s::AbstractStorage) =
-    _propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, nothing, s, nothing)
+(I::Flow)(x, span::NTuple{2, Real}, s, c::AbstractStageCache) =
+    I.sym(_propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, c, nothing, nothing), s)
 
 """
-    (I::Flow{TimeStepFromCache})(x, c::AbstractStageCache, m::Union{Nothing, <:AbstractMonitor}=nothing)
+    (I::Flow)(x, span::NTuple{2, Real}[, s], store::AbstractStorage)
 
-Map `x` forward/backward over a time span defined by the stage cache object `c`, 
-filling the monitor object `m` along the way. This method is primarily used to 
-integrate linearised equations forward/backward, so that the nonlinear and 
-linearised methods are discretely consistent. See [`Flow.jl Stage Caches`](@ref) 
-for more details on how to define and use `AbstractStorage` objects.
+Map `x` from `span[1]` to `span[2]`, pushing snapshots of the state
+into the storage `store` along the way. This is the typical way to
+build the trajectory required by a continuous adjoint/tangent
+integration: the storage acts as the source for the linear operator at
+non-grid times. See the *Storages* section of *Trajectory data* in the
+manual.
 """
+(I::Flow{TS, M, S, SO})(x, span::NTuple{2, Real}, store::AbstractStorage) where {TS, M, S, SO<:NoTransform} =
+    _propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, nothing, store, nothing)
+
+(I::Flow)(x, span::NTuple{2, Real}, store::AbstractStorage) =
+    _propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, nothing, store, nothing)
+
+(I::Flow)(x, span::NTuple{2, Real}, s, store::AbstractStorage) =
+    I.sym(_propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, nothing, store, nothing), s)
+
+"""
+    (I::Flow{TimeStepFromCache})(x, c::AbstractStageCache[, s], m::Union{Nothing, <:AbstractMonitor}=nothing)
+
+Replay the stage cache `c` through the linearised system held by `I`,
+optionally recording samples into the monitor `m`. The time grid is
+fully determined by `c`, so no `span` argument is required. This
+produces a discretely consistent linearised/adjoint trajectory.
+"""
+(I::Flow{TimeStepFromCache, M, S, SO})(x, c::AbstractStageCache,
+                                          m::Union{Nothing, <:AbstractMonitor}=nothing) where {M, S, SO<:NoTransform} =
+    _propagate!(I.meth, I.sys, x, c, m)
+
 (I::Flow{TimeStepFromCache})(x, c::AbstractStageCache,
                              m::Union{Nothing, <:AbstractMonitor}=nothing) =
     _propagate!(I.meth, I.sys, x, c, m)
 
-"""
-    (I::Flow{TimeStepFromStorage})(x, s::AbstractStorage, span::NTuple{2, Real}, m::Union{Nothing, <:AbstractMonitor}=nothing)
+(I::Flow{TimeStepFromCache})(x, c::AbstractStageCache, s,
+                             m::Union{Nothing, <:AbstractMonitor}=nothing) =
+    I.sym(_propagate!(I.meth, I.sys, x, c, m), s)
 
-Map `x` forward/backward over a time span `(span[1], span[2])` using the nonlinear
-trajectory stored in `s` to drive linearised equations. An additional `Monitor` object
-`m` can be filled along the way. The monitor object is fed with elements that are 
-similar to `x`. This method can be used to integrate forward or 
-adjoint equations in a way that is not discretely consistent.
 """
+    (I::Flow{TimeStepFromStorage})(x, store::AbstractStorage, span::NTuple{2, Real}[, s], m::Union{Nothing, <:AbstractMonitor}=nothing)
+
+Map `x` from `span[1]` to `span[2]` using the trajectory in `store` to
+evaluate the linear operator at the times required by the continuous
+linearised/adjoint scheme. This is *not* a discretely consistent path —
+see the `TimeStepFromCache` variant above for the consistent
+alternative. Optional `m` records observables.
+"""
+(I::Flow{TimeStepFromStorage, M, S, SO})(x,
+                                         store::AbstractStorage,
+                                         span::NTuple{2, Real},
+                                         m::Union{Nothing, <:AbstractMonitor}=nothing) where {M, S, SO<:NoTransform} =
+    _propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, store, m)
+
 (I::Flow{TimeStepFromStorage})(x,
-                               s::AbstractStorage,
+                               store::AbstractStorage,
                                span::NTuple{2, Real},
                                m::Union{Nothing, <:AbstractMonitor}=nothing) =
-    _propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, s, m)
+    _propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, store, m)
 
-# ---------------------------------------------------------------------------- #
-# PROPAGATION FUNCTIONS & UTILS
+(I::Flow{TimeStepFromStorage})(x,
+                               store::AbstractStorage,
+                               span::NTuple{2, Real},
+                               s,
+                               m::Union{Nothing, <:AbstractMonitor}=nothing) =
+    I.sym(_propagate!(I.meth, I.tstep, I.sys, Float64.(span), x, store, m), s)
 
+
+# ============================================================================
+# PROPAGATION FUNCTIONS & UTILITIES
+# ============================================================================
+
+"""
+    InvalidSpanError(span)
+
+Exception raised by a [`Flow`](@ref) call when the requested integration
+span is invalid. For the non-distributed paths this means the span is
+strictly decreasing (`span[1] > span[2]`).
+"""
 struct InvalidSpanError{S} <: Exception
     span::S
 end
@@ -165,8 +275,10 @@ Base.showerror(io::IO, e::InvalidSpanError) =
 """
     @_checkspan(span, z)
 
-Check `span[1] < span[2]`, throw an error `span[1] > span[2]` and return `z`
-directly if `span[1] == span[2]`. 
+Validate an integration span and short-circuit pathological cases. If
+`span[1] == span[2]` the macro causes the enclosing function to return
+`z` immediately (no work to do); if `span[1] > span[2]` it throws an
+[`InvalidSpanError`](@ref).
 """
 macro _checkspan(span, z)
     quote
@@ -175,8 +287,9 @@ macro _checkspan(span, z)
     end
 end
 
-# ---------------------------------------------------------------------------- #
+# ============================================================================
 # CONSTANT TIME-STEP INTEGRATION FOR NONLINEAR EQUATIONS OR COUPLED SYSTEMS
+# ============================================================================
 function _propagate!(method::AbstractMethod{Z, NormalMode},
                    stepping::TimeStepConstant,
                      system::System,
@@ -189,7 +302,7 @@ function _propagate!(method::AbstractMethod{Z, NormalMode},
                                        M<:Union{Nothing, AbstractMonitor},
                                        C<:Union{Nothing, AbstractStageCache}}
     # checks
-    if cache isa AbstractStageCache 
+    if cache isa AbstractStageCache
         nstages(method) == nstages(cache) ||
             throw(ArgumentError("incompatible method and stage cache"))
     end
@@ -200,7 +313,7 @@ function _propagate!(method::AbstractMethod{Z, NormalMode},
     # define integration times
     tdts = Steps(span[1], span[2], stepping.Δt)
 
-    # the number of steps is used for the `StoreOnlyLast` monitor
+    # the number of steps is used for the `StoreNFromLast` monitor
     nsteps = length(tdts)
 
     # always push initial state to monitor and storage
@@ -235,8 +348,9 @@ function _propagate!(method::AbstractMethod{Z, NormalMode},
     return z
 end
 
-# ---------------------------------------------------------------------------- #
+# ============================================================================
 # PROPAGATION BASED ON SYSTEMS HOOK: ONLY FOR STATE EQUATIONS
+# ============================================================================
 function _propagate!(method::AbstractMethod{Z, MODE},
                        hook::AbstractTimeStepFromHook,
                      system::System,
@@ -250,7 +364,7 @@ function _propagate!(method::AbstractMethod{Z, MODE},
                                        M<:Union{Nothing, AbstractMonitor},
                                        C<:Union{Nothing, AbstractStageCache}}
     # checks
-    if cache isa AbstractStageCache 
+    if cache isa AbstractStageCache
         nstages(method) == nstages(cache) ||
             throw(ArgumentError("incompatible method and stage cache "))
     end
@@ -284,15 +398,18 @@ function _propagate!(method::AbstractMethod{Z, MODE},
     return z
 end
 
-# return next time and time step that allows hitting the end point exactly
+# Return the next time and the time step that exactly reaches `T`, given the
+# raw step size returned by the hook. We deliberately clamp at `T` so the
+# integration terminates on the requested endpoint rather than overshooting.
 function _next_Δt(t, T, Δt::S) where {S<:Real}
     @assert Δt > 0 "negative time step encountered"
     t_next = ifelse(t ≤ T, min(t+Δt, T), max(t-Δt, T))
     return t_next, S(t_next - t)
 end
 
-# ---------------------------------------------------------------------------- #
+# ============================================================================
 # TIME STEPPING BASED ON CACHED STAGES, ONLY FOR LINEARISED EQUATIONS
+# ============================================================================
 function _propagate!(method::AbstractMethod{Z, MODE},
                      system::System,
                           z::Z,
@@ -333,16 +450,17 @@ function _propagate!(method::AbstractMethod{Z, MODE},
     return z
 end
 
-# ---------------------------------------------------------------------------- #
-# TIME STEPPING BASED ON STORAGE FOR CONTINUOS ADJOINT/TANGENT EQUATIONS
+# ============================================================================
+# TIME STEPPING BASED ON STORAGE FOR CONTINUOUS ADJOINT/TANGENT EQUATIONS
+# ============================================================================
 function _propagate!(method::AbstractMethod{Z, MODE},
                    stepping::TimeStepFromStorage,
                      system::System,
                        span::NTuple{2, Any},
                           z::Z,
                       store::AbstractStorage,
-                        mon::M) where {Z, 
-                                       MODE<:ContinuousMode, 
+                        mon::M) where {Z,
+                                       MODE<:ContinuousMode,
                                        M<:Union{Nothing, AbstractMonitor}}
 
     # Define integration times and time steps. The adjoint case,

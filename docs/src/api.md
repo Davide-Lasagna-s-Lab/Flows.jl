@@ -1,43 +1,39 @@
 # Full public API
 
-## Flow operator API
-The basic building block of this package is the [`Flows.Flow`](@ref) object, a discrete approximation of the flow of a dynamical system. Here is a list of possible constructors.
+Docstrings for every exported and documented internal symbol, grouped by topic. For guidance on which symbol to reach for in which situation, start with the manual pages — this reference is intentionally terse.
+
+## Flow operator
+
 ```@docs
 flow
-```
-
-Objects of type `Flow` satisfy a callable interface, with additional arguments possible.
-```@docs
 Flows.Flow
+Flows.InvalidSpanError
 ```
 
-## Monitor API
+## System wrapper
+
 ```@docs
-Monitor
-reset!
-times
-samples
+Flows.System
 ```
 
-## Coupled API
+## States and coupled states
+
 ```@docs
 Coupled
 couple
 couplecopy
-getindex
-similar
-size
+Flows.SymTransform
+Flows.CoupledTransform
 ```
 
-## Storage API
+## Call dependencies
+
 ```@docs
-RAMStorage
-period
-isperiodic
-timespan
+CallDependency
 ```
 
-## Integration methods API
+## Integration schemes
+
 ```@docs
 RK4
 CNRK2
@@ -45,12 +41,68 @@ CB3R2R2
 CB3R2R3c
 CB3R2R3e
 CB4R3R4
-ImcA!
 ```
 
-## Time Stepping API
+### Method base type and integration modes
+
+```@docs
+Flows.AbstractMethod
+Flows.AbstractMode
+Flows.NormalMode
+Flows.ContinuousMode
+Flows.DiscreteMode
+```
+
+### IMEX implicit solves
+
+```@docs
+ImcA!
+Flows.ImcA_mul!
+```
+
+## Time stepping
+
 ```@docs
 TimeStepConstant
 TimeStepFromStorage
-AbstractTimeStepFromHook
+Flows.TimeStepFromCache
+Flows.AbstractTimeStepFromHook
+Flows.Steps
+```
+
+## Monitors
+
+```@docs
+Monitor
+reset!
+times
+samples
+StoreNFromLast
+Flows.Logger
+```
+
+## Storages
+
+```@docs
+Flows.AbstractStorage
+RAMStorage
+period
+isperiodic
+timespan
+storelast
+degree
+```
+
+## Stage caches
+
+```@docs
+AbstractStageCache
+RAMStageCache
+```
+
+## Standalone quadrature rules
+
+```@docs
+Flows.trapz
+Flows.simps
 ```

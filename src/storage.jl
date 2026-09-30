@@ -1,23 +1,40 @@
 export AbstractStorage, RAMStorage, times, samples, degree, storelast, timespan, period, isperiodic
 
-# ////// SOLUTION STORAGE //////
-"""
-    AbstractStorage{T, X, DEG}
+# ============================================================================
+# AbstractStorage
+# ============================================================================
 
-Abstract type for storage of solution data. The type parameters specify:
-`T<:Real`    : the type used to store times
-`X`          : the type used to store snapshots
-`DEG`        : the degree of the interpolating lagrange polynomial
+"""
+    AbstractStorage{T<:Real, X, DEG}
+
+Supertype for objects that store a time series of states along a
+trajectory. The type parameters are:
+
+  - `T<:Real` — the type used to represent times.
+  - `X`       — the type used to represent state snapshots.
+  - `DEG`     — the degree of the Lagrange polynomial used by the
+                interpolator built on top of the storage.
+
+Concrete subtypes must implement `reset!`, `Base.push!`, [`times`](@ref),
+[`samples`](@ref), and [`timespan`](@ref). Concrete subtypes that need
+to interpolate between samples must also be callable with the signature
+`(store)(out, t, ::Val{ORD})`.
 """
 abstract type AbstractStorage{T<:Real, X, DEG} end
 
+"""
+    degree(store::AbstractStorage) -> Int
+
+Return the polynomial degree `DEG` used by the storage's Lagrange
+interpolator.
+"""
 degree(::AbstractStorage{T, X, DEG}) where {T, X, DEG} = DEG
 
-# checkers
+# trait used by `_propagate!` to dispatch differently on storage presence
 _isstorage(::Type{<:AbstractStorage}) = true
 _isstorage(::Any) = false
 
-# interface for subtypes
+# Abstract interface for subtypes. Concrete subtypes must override these.
 reset!(store::AbstractStorage, sizehint::Int) = error("not implemented")
 Base.push!(store::AbstractStorage{T, X}, t::T, x::X) where {T, X} =
     error("not implemented")
@@ -27,29 +44,51 @@ samples(store::AbstractStorage) = error("not implemented")
 timespan(store::AbstractStorage) = error("not implemented")
 
 
-# /// RAM storage ///
+# ============================================================================
+# RAMStorage — concrete in-memory storage
+# ============================================================================
+
 """
-    empty
+    RAMStorage{T, X, DEG, Vt, Vx} <: AbstractStorage{T, X, DEG}
+
+Concrete in-memory implementation of [`AbstractStorage`](@ref). Times
+and samples are kept in two parallel `Vector`s, indexed identically.
+
+The internal flag `storelast` controls whether the very last sample of
+an integration is pushed: it is left to the caller to decide because
+some workflows (notably periodic problems where the period is known)
+prefer to omit the repeated endpoint. The `period` field is set to a
+non-zero value when the data should be treated as one period of a
+periodic signal; the interpolator then performs modular wrap-around
+when the requested time is near an endpoint.
+
+Construct via the [`RAMStorage`](@ref) outer constructors.
 """
 struct RAMStorage{T,
                   X,
                   DEG,
                   Vt<:AbstractVector{T},
                   Vx<:AbstractVector{X}} <: AbstractStorage{T, X, DEG}
-           ts::Vt   # Vector of times
-           xs::Vx   # Vector of snapshots
-    storelast::Bool # this flag is used to avoid storing the last step of a simulation. it
-                    # has no effect on the behaviour of this object alone but interacts
-                    # when used in a call to a `Flow` object. This is useful for periodic
-                    # problems, when we want don't to repeat storing the first/last element
-                    # twice
-       period::T    # The period in case data is periodic. Defaults to `0.0`, so non periodic.
-                    # If the period is finite, it is assumed that the data is uniformly spaced
-                    # and that the last/first element is not repeated in the sequence
+           ts::Vt   # vector of sample times
+           xs::Vx   # vector of state snapshots
+    storelast::Bool # whether to store the last sample of an integration
+       period::T    # signal period; `0` means the data is non-periodic
 
-    # constructor from type
     """
-        some
+        RAMStorage(::Type{X}; ttype=Float64, degree=3, period=0.0, storelast=true)
+
+    Construct a [`RAMStorage`](@ref) for snapshots of type `X`. The
+    keyword arguments are:
+
+      - `ttype::Type{T} = Float64`: time element type.
+      - `degree::Int = 3`: odd polynomial degree (≥ 3) used by the
+        Lagrange interpolator built on top of the storage.
+      - `period::Real = 0.0`: positive period if the stored signal is
+        periodic; zero (the default) means non-periodic.
+      - `storelast::Bool = true`: whether the propagation loop should
+        push the final state of an integration. Set to `false` when
+        building a one-period buffer that should not contain the
+        duplicated endpoint.
     """
     function RAMStorage(::Type{X};
                    ttype::Type{T}=Float64,
@@ -62,83 +101,143 @@ struct RAMStorage{T,
         return new{T, X, degree, Vector{T}, Vector{X}}(T[], X[], storelast, period)
     end
 
-    # constructor from object
     """
-        Function
+        RAMStorage(x; kwargs...)
+
+    Convenience constructor that infers the snapshot type from `x`.
+    Equivalent to `RAMStorage(typeof(x); kwargs...)`. The same keyword
+    arguments documented on the type-based constructor apply.
     """
     RAMStorage(::X; kwargs...) where {X} = RAMStorage(X; kwargs...)
 end
 
+"""
+    reset!(rs::RAMStorage, sizehint::Int=0) -> rs
+
+Empty the time and sample buffers of `rs`. The optional `sizehint`
+preallocates capacity in both buffers so that subsequent `push!`
+calls can avoid reallocation. Returns `rs`.
+"""
 @inline reset!(rs::RAMStorage, sizehint::Int=0) =
     (sizehint!(empty!(rs.ts), sizehint); sizehint!(empty!(rs.xs), sizehint); rs)
 
+"""
+    push!(rs::RAMStorage, t::Real, x) -> nothing
+
+Append the pair `(t, x)` to the storage. `x` must already match the
+snapshot type the storage was constructed with; in particular, callers
+that pass a mutable buffer should `copy` it first if they intend to
+keep mutating it after the push.
+"""
 @inline Base.push!(rs::RAMStorage{T, X}, t::Real, x::X) where {T, X} =
     (push!(rs.ts, t); push!(rs.xs, x); nothing)
 
-times(     rs::RAMStorage) = rs.ts
-samples(   rs::RAMStorage) = rs.xs
-storelast( rs::RAMStorage) = rs.storelast
+"""
+    times(rs::RAMStorage) -> Vector
+
+Return the vector of times stored in `rs`, in push order.
+"""
+times(rs::RAMStorage) = rs.ts
 
 """
-    period(rs::RAMStorage)
+    samples(rs::RAMStorage) -> Vector
 
-Return the period of the data, or `0` if the data in non periodic.
+Return the vector of state snapshots stored in `rs`, in push order.
+"""
+samples(rs::RAMStorage) = rs.xs
+
+"""
+    storelast(rs::RAMStorage) -> Bool
+
+Return the `storelast` flag of `rs`. When `false`, the propagation
+loop is expected to omit the final sample of an integration — this is
+how the no-duplicated-endpoint convention for periodic storage is
+expressed.
+"""
+storelast(rs::RAMStorage) = rs.storelast
+
+"""
+    period(rs::RAMStorage) -> Real
+
+Return the period of the data stored in `rs`, or zero if the data is
+not periodic.
 """
 period(rs::RAMStorage) = rs.period
 
 """
-    isperiodic(rs::RAMStorage)
+    isperiodic(rs::RAMStorage) -> Bool
 
-Return true if the data stored in `rs` represent a periodic signal.
+Return `true` when the storage represents a periodic signal (i.e.
+`period(rs) > 0`).
 """
 isperiodic(rs::RAMStorage) = period(rs) != 0
 
 """
-    timespan(rs::RAMStorage)
+    timespan(rs::RAMStorage) -> Tuple{Real, Real}
 
-Return a 2-tuple with the first and last times stored.
+Return the `(first, last)` time of the stored data. For periodic
+storages the second element is `period(rs)` rather than the last
+sample time, because the storage convention is to omit the repeated
+endpoint.
 """
-timespan(rs::RAMStorage) = 
-    isperiodic(rs) ? (first(times(rs)), period(rs)) : (first(times(rs)), last(times(rs))) 
+timespan(rs::RAMStorage) =
+    isperiodic(rs) ? (first(times(rs)), period(rs)) : (first(times(rs)), last(times(rs)))
 
-# /// LAGRANGIAN INTERPOLATION ///
+
+# ============================================================================
+# LAGRANGIAN INTERPOLATION
+# ============================================================================
+# These helpers implement Lagrange interpolation on top of an
+# `AbstractStorage`, with optional first-derivative support via central
+# finite differences (a stop-gap until proper analytic derivatives are
+# wired in). They are not exported.
 
 """
-    _lagr_weights(t::Real, ts::NTuple{N, Real}) where {N}
+    _lagr_weights(t::Real, ts::NTuple{N, Real}, ::Val{0}) -> NTuple{N, Real}
 
-Compute a `N`-tuple for the interpolation weights to interpolate
-data at position `t` using data points available at positions `ts`,
-with a lagrange polynomial of degree `N-1`.
+Return the `N` Lagrange interpolation weights for interpolating at `t`
+using the nodes `ts`. The result is an `N`-tuple of weights that sum
+to one. The `Val{0}` distinguishes the function-value variant from the
+first-derivative variant below.
 """
 @generated _lagr_weights(t::Real, ts::NTuple{N, Real}, ::Val{0}) where {N} =
     :(Base.Cartesian.@ntuple $N j->_prod(t, ts, Val(j))/_prod(ts[j], ts, Val(j)))
 
-# FIXME: implement proper rule for differentiation!!!
+"""
+    _lagr_weights(t::Real, ts::NTuple{N, Real}, ::Val{1}) -> NTuple{N, Real}
+
+Approximate the first-derivative Lagrange weights at `t` using a
+fourth-order central finite-difference stencil applied to the
+function-value weights. This is a placeholder for a proper analytic
+differentiation rule and trades a small amount of accuracy for a very
+simple implementation.
+"""
 @generated function _lagr_weights(t::Real, ts::NTuple{N, Real}, ::Val{1}) where {N}
     quote
         a = _lagr_weights(t-2e-6, ts, Val(0))
         b = _lagr_weights(t-1e-6, ts, Val(0))
         c = _lagr_weights(t+1e-6, ts, Val(0))
-        d = _lagr_weights(t+2e-6, ts, Val(0)) 
+        d = _lagr_weights(t+2e-6, ts, Val(0))
         return  (a .- 8.0.*b .+ 8.0.*c .- d)./12e-6
     end
 end
 
 """
-    _prod(t::T, ts::NTuple{N, T}, ::Val{SKIP}) where {N, T, SKIP}
+    _prod(t::Real, ts::NTuple{N, Real}, ::Val{SKIP}) -> Real
 
-Compute the product `(t - ts[1])*(t - ts[2])...(t - ts[N])` excluding the
-factor `(t - ts[SKIP])`.
+Compute `(t - ts[1])(t - ts[2])…(t - ts[N])` while skipping the factor
+`(t - ts[SKIP])`. Used to build the Lagrange basis polynomials at
+generation time.
 """
 @generated _prod(t::Real, ts::NTuple{N, Real}, ::Val{SKIP}) where {N, SKIP} =
     :(return *($([:(t - ts[$k]) for k in 1:N if k != SKIP]...)))
 
 """
-    _lagr_interp(out::X, t::Real, ts::NTuple{N, Real},
-                 xs::AbstractVector{X}, rng::NTuple{N, Int}) where {X, N}
+    _lagr_interp(out, t, ts, xs, rng, ::Val{ORD}) -> out
 
-Interpolate data points `(ts, xs[rng])` at location `t`, using a
-lagrange polynomial of degree `N-1`, and overwrite the first argument `out`.
+Interpolate the samples `xs[rng]` at the nodes `ts` to obtain the value
+at time `t`, writing the result in place into `out`. `ORD` selects the
+function-value (`0`) or first-derivative (`1`) interpolant.
 """
 function _lagr_interp(out::X,
                        t::Real,
@@ -160,16 +259,20 @@ function _lagr_interp(out::X,
 end
 
 """
-    _wrap_around_point(idxs::NTuple{N, Int}) where {N}
+    _wrap_around_point(idxs::NTuple{N, Int}) -> Int
 
-Helper function to determine if the stencil for the interpolation 
-wraps around. This happens for periodic data. This function is 
-defined by the following test cases:
+Return the first index `i` such that `idxs[i] > idxs[i+1]`, or `N+1` if
+the tuple is already strictly increasing. This is the wrap point of a
+periodic interpolation stencil; positions in `idxs` that fall after the
+wrap point should have one period added to them before interpolation.
 
-    _wrap_around_point((  1,   2,   3, 4)) -> 5 # no wrap around
-    _wrap_around_point((100,   1,   2, 3)) -> 1
-    _wrap_around_point(( 99, 100,   1, 2)) -> 2
-    _wrap_around_point(( 98,  99, 100, 1)) -> 3
+# Examples
+```julia
+_wrap_around_point((  1,   2,   3, 4)) == 5  # no wrap
+_wrap_around_point((100,   1,   2, 3)) == 1
+_wrap_around_point(( 99, 100,   1, 2)) == 2
+_wrap_around_point(( 98,  99, 100, 1)) == 3
+```
 """
 function _wrap_around_point(idxs::NTuple{N, Int}) where {N}
     for i in 1:N-1
@@ -181,23 +284,20 @@ function _wrap_around_point(idxs::NTuple{N, Int}) where {N}
 end
 
 """
-    _make_tuple_of_times(t::Real, 
-                        ts::AbstractVector{<:Real},
-                      idxs::NTuple{N, Int},
-                    period::Real) where {N}
+    _make_tuple_of_times(t, ts, idxs, period) -> (NTuple{N, Real}, Real)
 
-Construct a tuple of times `_ts` that is in principle equivalent to 
-`_ts = ts[idxs]`, but takes cares of situations where the interpolation 
-stencil wraps around, e.g. when interpolating periodic data near `t=0.0` 
-or near `t=period`. This returns a tuple of strictly increasing times, 
-and an adjusted time `_t` that sits in between the extrema of `_ts`.
+Build a strictly increasing tuple of times equivalent to `ts[idxs]`,
+adding `period` to entries that follow the wrap point so the result is
+monotone. The query time `t` is shifted by `period` when needed so
+that it falls inside the resulting interval, which is required for
+Lagrange interpolation to evaluate inside the stencil.
 """
-@generated function _make_tuple_of_times(t::Real, 
+@generated function _make_tuple_of_times(t::Real,
                                         ts::AbstractVector{<:Real},
                                       idxs::NTuple{N, Int},
                                     period::Real) where {N}
     # julia struggles with inference here, so we make this a generated function
-    quote 
+    quote
         # determine the wrapping point
         p = _wrap_around_point(idxs)
 
@@ -214,13 +314,12 @@ and an adjusted time `_t` that sits in between the extrema of `_ts`.
 end
 
 """
-    _interp_indices(t::Real, ts::AbstractVector{<:Real},
-                    ::Val{N}, isperiodic::Bool) where {N}
+    _interp_indices(t, ts, ::Val{N}, isperiodic::Bool) -> NTuple{N, Int}
 
-Return an `N`-tuple of integer indices for the elements of `ts`
-that participate in the interpolation at some point `t`. It is
-assumed that `ts` is sorted, that `t ≥ ts[1]` and that the 
-length of `ts` is larger than `N`.
+Return the `N` indices into the sorted `ts` whose corresponding samples
+participate in an interpolation at `t`. `ts` is assumed to be sorted
+and at least `N` elements long. When `isperiodic` is true, the stencil
+wraps around the endpoints modulo the period.
 """
 @generated function _interp_indices(t::Real,
                                    ts::AbstractVector{<:Real},
@@ -246,10 +345,16 @@ length of `ts` is larger than `N`.
 end
 
 
-#    (store::RAMStorage{T, X, DEG})(out::X, t::Real) where {T, X, DEG}
-# 
-# Interpolate the storage data at time `t` and overwrite the first argument
-# `out`, using lagrangian interpolation of order `DEG`.
+"""
+    (store::RAMStorage)(out, t::Real, ::Val{ORD}=Val(0)) -> out
+
+Interpolate the storage data at time `t`, writing the result into the
+preallocated buffer `out` in place. `ORD` selects the function-value
+(`0`, default) or first-derivative (`1`) interpolant. The storage
+must contain at least `DEG+1` samples, and `t` must lie within
+[`timespan`](@ref); extrapolation is not allowed and raises an
+`ArgumentError`.
+"""
 function (store::RAMStorage{T, X, DEG})(out::X,
                                           t::Real,
                                            ::Val{ORD}=Val(0)) where {T,
@@ -273,10 +378,18 @@ function (store::RAMStorage{T, X, DEG})(out::X,
 
     # define the abscissa of the interpolation data
     _ts, _t = _make_tuple_of_times(t, ts, idxs, period(store))
-    
+
     return _lagr_interp(out, _t, _ts, xs, idxs, Val(ORD))
 end
 
+"""
+    (store::RAMStorage)(out::Coupled, t::Real, ::Val{ORD}=Val(0)) -> out[1]
+
+Coupled-state convenience: interpolate only the first component of
+`out` from the storage. This is used by the IMEX integration paths
+where the storage holds the nonlinear-state trajectory and the
+linearised state is the remaining coupled component.
+"""
 @generated function (store::RAMStorage)(out::Coupled, t::Real, ::Val{ORD}=Val(0)) where {ORD}
     return quote
         store(out[1], t, Val(ORD))

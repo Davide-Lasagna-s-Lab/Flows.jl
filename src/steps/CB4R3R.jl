@@ -8,9 +8,12 @@ struct CB4R3R4{X, MODE, NX} <: AbstractMethod{X, MODE, 6}
 end
 
 """
-    CB4R3R4(x::X, mode::AbstractMode=NormalMode())
+    CB4R3R4(x::X, mode::AbstractMode = NormalMode()) -> CB4R3R4
 
-Constructs a `CB4R3R4` integration scheme object for integration with mode `mode`.
+Construct the four-register, six-stage, fourth-order IMEX Runge–Kutta
+scheme of Cavaglieri & Bewley (2015). `x` is a template used to
+preallocate the internal stage buffers; the count depends on `mode`:
+`4` for [`NormalMode`](@ref), `5` for [`ContinuousMode`](@ref).
 """
 function CB4R3R4(x::X, mode::MODE = NormalMode()) where {X, MODE<:AbstractMode}
     N = mode isa NormalMode ? 4 : 5
