@@ -65,7 +65,18 @@ end
                                      dzdt::Coupled{N}) where {N}
     expr = quote return dzdt end
     for i = 1:N
-        pushfirst!(expr.args, :(sys.g[$i](t, u, z[$i], dzdt[$i])))
+        pushfirst!(expr.args, :(sys.g[$(Val(i))](t, u, z[$i], dzdt[$i])))
+    end
+    return expr
+end
+
+@generated function (sys::System{N})(t::Real,
+                                     u::Coupled{N},
+                                     z::Coupled{N},
+                                     dzdt::Coupled{N}) where {N}
+    expr = quote return dzdt end
+    for i = 1:N
+        pushfirst!(expr.args, :(sys.g[$(Val(i))](t, u[$i], z[$i], dzdt[$i])))
     end
     return expr
 end
