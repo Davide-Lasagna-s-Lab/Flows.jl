@@ -187,3 +187,137 @@ end
     # put test here for output to io
     # @test String(take!(io)) == "some complicated string"
 end
+
+# A deterministic hook exercises endpoint detection without relying on the
+# constant-step integration path.
+struct MonitorTestHook <: AbstractTimeStepFromHook end
+(::MonitorTestHook)(g, A, x) = 0.25
+
+@testset "skiplast" begin
+    g(t, x, dx) = (dx .= 1; dx)
+    x = [0.0]
+    for stepping in (TimeStepConstant(0.25), MonitorTestHook())
+        F = flow(g, RK4(x), stepping)
+        # Cover endpoints both on and off the ordinary sampling schedule.
+        for oneevery in (1, 3), stop in (1.0, 1.125)
+            baseline = Monitor(x, (t, x)->x[1]; oneevery)
+            calls = Float64[]
+            mon = Monitor(x, (t, x)->(push!(calls, t); x[1]); oneevery, skiplast=true)
+            empty!(calls) # Constructor probes the observable to infer its type.
+            a, b = copy(x), copy(x)
+            F(a, (0.0, stop), baseline)
+            F(b, (0.0, stop), mon)
+            keep = findall(!=(stop), times(baseline))
+            @test times(mon) == times(baseline)[keep]
+            @test samples(mon) == samples(baseline)[keep]
+            @test calls == times(mon) # No callback for the discarded endpoint.
+            @test a == b             # Skipping storage does not skip integration.
+            @test mon.count == baseline.count
+        end
+    end
+
+    # Reusing a monitor omits every integration endpoint, but records the next
+    # initial state. reset! clears samples while preserving the configuration.
+    F = flow(g, RK4(x), TimeStepConstant(0.25))
+    mon = Monitor(x; skiplast=true)
+    F(copy(x), (0.0, 0.5), mon)
+    F(copy(x), (0.5, 1.0), mon)
+    @test times(mon) == [0.0, 0.25, 0.5, 0.75]
+    reset!(mon)
+    @test mon.skiplast && mon.count == 0 && isempty(times(mon))
+    mon = Monitor(x; skipfirst=true, skiplast=true)
+    F(copy(x), (0.0, 0.25), mon)
+    @test isempty(times(mon)) # A single step has no interior samples.
+    reset!(mon)
+    F(copy(x), (0.0, 0.75), mon)
+    @test times(mon) == [0.25, 0.5]
+
+    # savebetween can exclude the endpoint already; no previous sample should
+    # be removed. Direct pushes are not implicitly treated as final samples.
+    mon = Monitor(x; skiplast=true, savebetween=(0.25, 0.5))
+    F(copy(x), (0.0, 1.0), mon)
+    @test times(mon) == [0.25, 0.5]
+    mon = Monitor(x; skiplast=true)
+    push!(mon, 1.0, x, true)
+    @test times(mon) == [1.0]
+
+    # Stored trajectories support both forward and backward propagation.
+    gl(t, u, x, dx) = (dx .= 0; dx)
+    store = RAMStorage(x)
+    for t in 0:0.25:1
+        push!(store, t, copy(x))
+    end
+    for backward in (false, true)
+        span = backward ? (1.0, 0.0) : (0.0, 1.0)
+        expected = backward ? [1.0, 0.75, 0.5, 0.25] : [0.0, 0.25, 0.5, 0.75]
+        mon = Monitor(x; skiplast=true)
+        F = flow(gl, RK4(x, ContinuousMode(backward)), TimeStepFromStorage(0.25))
+        F(copy(x), store, span, mon)
+        @test times(mon) == expected
+    end
+
+    # Cached-stage tangent/adjoint propagation reaches opposite endpoints.
+    cache = RAMStageCache(4, x)
+    flow(g, RK4(x), TimeStepConstant(0.25))(copy(x), (0.0, 1.0), cache)
+    for backward in (false, true)
+        mon = Monitor(x; skiplast=true)
+        F = flow(gl, RK4(x, DiscreteMode(backward)), TimeStepFromCache())
+        F(copy(x), cache, mon)
+        expected = backward ? [1.0, 0.75, 0.5, 0.25] : [0.0, 0.25, 0.5, 0.75]
+        @test times(mon) == expected
+    end
+end
+
+@testset "skiplast sampling cadence" begin
+    g(t, x, dx) = (dx .= 1; dx)
+    F = flow(g, RK4([0.0]), TimeStepConstant(0.25))
+
+    # The endpoint must be absent whether it lands on the regular cadence or
+    # would otherwise be forced. Use explicit expected times, not another monitor.
+    for (oneevery, expected) in ((2, [0.0, 0.5]), (3, [0.0, 0.75]), (10, [0.0]))
+        mon = Monitor([0.0]; oneevery, skiplast=true)
+        F([0.0], (0.0, 1.0), mon)
+        @test times(mon) == expected
+        @test mon.count == 5
+    end
+
+    # Both boundary flags leave interior samples at the same counter positions.
+    mon = Monitor([0.0]; oneevery=2, skipfirst=true, skiplast=true)
+    F([0.0], (0.0, 1.0), mon)
+    @test times(mon) == [0.5]
+
+    # Filtering by time must not move the cadence to the first eligible time.
+    mon = Monitor([0.0]; oneevery=2, skiplast=true, savebetween=(0.25, 1.0))
+    F([0.0], (0.0, 1.0), mon)
+    @test times(mon) == [0.5]
+
+    # Each integration restarts its cadence but appends to existing samples.
+    mon = Monitor([0.0]; oneevery=3, skiplast=true)
+    F([0.0], (0.0, 1.0), mon)
+    F([1.0], (1.0, 2.0), mon)
+    @test times(mon) == [0.0, 0.75, 1.0, 1.75]
+    @test mon.count == 5
+    reset!(mon)
+    F([0.0], (0.0, 1.0), mon)
+    @test times(mon) == [0.0, 0.75]
+end
+
+
+@testset "sampling restarts on each integration" begin
+    g(t, x, dx) = (dx .= 1; dx)
+    # Repeating the same span must append the same sampling times. Include
+    # skipfirst to check that both endpoint flags apply independently per call.
+    for stepping in (TimeStepConstant(1.0), MonitorTestHook()),
+        skiplast in (false, true), skipfirst in (false, true)
+        dt = stepping isa TimeStepConstant ? 1.0 : 0.25
+        F = flow(g, RK4([0.0]), stepping)
+        mon = Monitor([0.0]; oneevery=2, skiplast, skipfirst)
+        expected = collect(0:2:10) .* dt
+        skiplast && pop!(expected)
+        skipfirst && popfirst!(expected)
+        F([0.0], (0.0, 10dt), mon)
+        F([0.0], (0.0, 10dt), mon)
+        @test times(mon) == vcat(expected, expected)
+        @test mon.count == 11
+    end
+end

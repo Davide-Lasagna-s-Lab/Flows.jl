@@ -66,3 +66,37 @@ mon = Monitor(zeros(5), x->(x ./= norm(x)); oneevery=10)
 
 ## Advanced usage
 The behaviour of `Monitor` object can be customised more finely. Consult the [Monitor API](@ref) page for more details.
+
+
+## Skipping the final sample
+
+Use `skiplast=true` to omit the endpoint of each call to the flow operator:
+
+```julia
+mon = Monitor(x, (t, x) -> copy(x); skiplast=true)
+F(x, (0, 1), mon)  # records the initial state and intermediate samples, not t=1
+F(x, (1, 2), mon)  # t=1 may now be recorded as the initial sample; t=2 is omitted
+```
+
+This works with constant, hook-based, cached-stage and stored-trajectory time
+stepping. For backward integration, it skips the endpoint reached last.
+`skiplast` overrides forced endpoint storage and `oneevery`, but does not change
+integration itself or separate trajectory storage. The skipped endpoint does
+not invoke the observable or logger. Its call still counts towards `oneevery`;
+`savebetween` and the existing sampling cadence otherwise remain unchanged.
+
+The default is `skiplast=false`. It can be combined with `skipfirst=true`, which
+skips the initial sample of each integration call. Resetting clears samples and counters but
+preserves both flags. Direct `push!` calls do not identify endpoints and therefore
+ignore `skiplast`.
+
+For example, with `dt=0.25`, span `(0, 1)`, and `skiplast=true`,
+`oneevery=2` records `[0, 0.5]`, whereas `oneevery=3` records `[0, 0.75]`.
+Neither records `t=1`, even if it falls on the regular cadence.
+
+The sampling counter restarts at the beginning of every integration call,
+while recorded samples are retained. Thus, with `dt=1`, `oneevery=2` and
+`skiplast=true`, two calls over `(0, 10)` record
+`[0, 2, 4, 6, 8, 0, 2, 4, 6, 8]`. With `skiplast=false`, both groups also
+include `10`. `skipfirst` likewise applies separately to each integration.
+Call `reset!` when you also want to clear the recorded samples.

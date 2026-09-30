@@ -204,7 +204,7 @@ function _propagate!(method::AbstractMethod{Z, NormalMode},
     nsteps = length(tdts)
 
     # always push initial state to monitor and storage
-    M <: AbstractMonitor && push!(mon,   span[1], z, true)
+    M <: AbstractMonitor && push!(mon,   span[1], z, true, true, false)
     S <: AbstractStorage && push!(store, span[1], copy(z))
 
     # if we have a storage, we might need to skip pushing the last element, based
@@ -223,7 +223,7 @@ function _propagate!(method::AbstractMethod{Z, NormalMode},
             # we might need to force pushing the last element to the monitor
             force = j == nsteps ? true : false
 
-            push!(mon, t + dt, z, force)
+            push!(mon, t + dt, z, force, false, j == nsteps)
         end
         if S <: AbstractStorage
             if j != j_skip
@@ -262,7 +262,7 @@ function _propagate!(method::AbstractMethod{Z, MODE},
     t, T = span
 
     # store initial state in monitors
-    M <: AbstractMonitor && push!(mon,   t, z)
+    M <: AbstractMonitor && push!(mon,   t, z, false, true, false)
     S <: AbstractStorage && push!(store, t, copy(z))
 
     # run until condition
@@ -277,7 +277,7 @@ function _propagate!(method::AbstractMethod{Z, MODE},
         t = t_next
 
         # store solution into monitor
-        M <: AbstractMonitor && push!(mon, t, z)
+        M <: AbstractMonitor && push!(mon, t, z, false, false, t == T)
         S <: AbstractStorage && push!(store, t, copy(z))
     end
 
@@ -311,22 +311,22 @@ function _propagate!(method::AbstractMethod{Z, MODE},
     # integrate forward or backward based on type of linear equation
     if isadjoint(MODE) == false
         # store final state in monitors. Note cache does not contain final T.
-        M <: AbstractMonitor && push!(mon, ts[1], z)
+        M <: AbstractMonitor && push!(mon, ts[1], z, false, true, false)
 
         for i in 1:length(ts)
             # make step
             step!(method, system, ts[i], Δts[i], z, xs[i])
 
             # then save current state
-            M <: AbstractMonitor && push!(mon, ts[i]+Δts[i], z)
+            M <: AbstractMonitor && push!(mon, ts[i]+Δts[i], z, false, false, i == length(ts))
         end
     else
         # store final state in monitors. Note cache does not contain final T.
-        M <: AbstractMonitor && push!(mon, ts[end] + Δts[end], z)
+        M <: AbstractMonitor && push!(mon, ts[end] + Δts[end], z, false, true, false)
 
         for i in reverse(1:length(ts))
             step!(method, system, ts[i], Δts[i], z, xs[i])
-            M <: AbstractMonitor && push!(mon, ts[i], z)
+            M <: AbstractMonitor && push!(mon, ts[i], z, false, false, i == 1)
         end
     end
 
@@ -356,7 +356,7 @@ function _propagate!(method::AbstractMethod{Z, MODE},
     nsteps = length(tdts)
 
     # store initial state in monitors (this could be the final adjoint state)
-    M <: AbstractMonitor && push!(mon, span[1], z, true)
+    M <: AbstractMonitor && push!(mon, span[1], z, true, true, false)
 
     # March in time. Note final value of`t` and `dt` is
     # such that `t + dt = span[2]`
@@ -368,7 +368,7 @@ function _propagate!(method::AbstractMethod{Z, MODE},
         force = j == nsteps ? true : false
 
         # store
-        M <: AbstractMonitor && push!(mon, t + dt, z, force)
+        M <: AbstractMonitor && push!(mon, t + dt, z, force, false, j == nsteps)
     end
 
     return z

@@ -19,19 +19,23 @@ mutable struct Monitor{T, X, S<:AbstractStorage{T, X}, F, L<:AbstractLogger} <: 
     savebetween::Tuple{Float64, Float64} # save only between these two times 
           count::Int                     # how many items we have in the store
       skipfirst::Bool                    # skip the first sample?
+       skiplast::Bool                    # skip each integration endpoint?
             log::L                       # logger to handle the print formatting
     Monitor(store::S,
                 f::F,
                 oneevery::Int, 
                 savebetween::Tuple{Real, Real},
                 skipfirst::Bool,
+                skiplast::Bool,
                 log::L) where {T, X, S<:AbstractStorage{T, X}, F, L<:AbstractLogger} =
-        new{T, X, S, F, L}(store, f, oneevery, savebetween, 0, skipfirst, log)
+        new{T, X, S, F, L}(store, f, oneevery, savebetween, 0, skipfirst, skiplast, log)
 end
 
 """
 
-    Monitor(x, f::Base.Callable=identity, store::S=RAMStorage(f(x)); oneevery::Int=1, savebetween::Tuple{Real, Real}=(-Inf, Inf), sizehint::Int=0)
+    Monitor(x, f=(t, x)->x, store=RAMStorage(f(0.0, x));
+            oneevery=1, savebetween=(-Inf, Inf), skipfirst=false, skiplast=false,
+            sizehint=0, io=devnull, logevery=1)
 
 
 Construct a `Monitor` object to record one observable quantity along a trajectory. 
@@ -45,6 +49,13 @@ samples is stored.
 If required, only samples at times falling in the range specified by `savebetween` are 
 stored. Specifying the number of samples stored with the `sizehint` keyword argument
 may increase performance.
+
+Set `skiplast=true` to omit the endpoint of each integration call, including
+endpoints selected by `oneevery`. The observable and logger are not called for
+that sample, but the sampling counter still advances within that integration call.
+Each integration restarts the counter without clearing previously stored samples. `skipfirst=true` skips
+the initial sample of each integration call. Both default to `false`.
+Direct `push!` calls have no endpoint information and are unaffected by `skiplast`.
 
 In addition, the monitor values can be output to `io`. Specifying `logevery` skips
 the output of the monitor state for the given number of monitor counts. See
@@ -61,13 +72,29 @@ Monitor(x,
         oneevery::Int=1,
         savebetween::Tuple{Real, Real}=(-Inf, Inf),
         skipfirst::Bool=false,
+        skiplast::Bool=false,
         sizehint::Int=0,
         io::IO=devnull,
         logevery::Int=1) where {S<:AbstractStorage} =
-    Monitor(reset!(store, sizehint), f, oneevery, savebetween, skipfirst, Logger(io, f(0.0, x), logevery))
+    Monitor(reset!(store, sizehint), f, oneevery, savebetween, skipfirst, skiplast, Logger(io, f(0.0, x), logevery))
 
-# Add sample and time to the storage
-@inline function Base.push!(mon::Monitor, t::Real, x, force::Bool=false)
+"""
+    push!(mon::Monitor, t, x, force=false, first=false, last=false)
+
+Offer a sample to the monitor. `force` bypasses `oneevery`, but not the
+endpoint flags or `savebetween`. Set `first=true` at an integration's initial
+sample to restart the counter without clearing storage; set `last=true` at
+its endpoint to apply `skiplast`. Skipped samples still advance the counter.
+"""
+# Integration boundaries control the cadence and endpoint filtering here,
+# keeping those details out of the integrator. Ordinary pushes need no flags.
+@inline function Base.push!(mon::Monitor, t::Real, x, force::Bool=false,
+                           first::Bool=false, last::Bool=false)
+    first && (mon.count = 0)
+    if last && mon.skiplast
+        mon.count += 1
+        return nothing
+    end
     if force == true || (mon.count % mon.oneevery == 0)
         if isbetween(t, mon.savebetween...)
             if !(mon.count == 0 && mon.skipfirst)

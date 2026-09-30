@@ -17,5 +17,7 @@ end
 
 getN(::StoreNFromLast{N}) where {N} = N
 
-Base.push!(mon::StoreNFromLast, t::Real, z, ::Bool) =
+# The integrator selects the step to store; boundary and forcing flags are unused.
+Base.push!(mon::StoreNFromLast, t::Real, z, ::Bool,
+           ::Bool=false, ::Bool=false) =
     (mon.x .= mon.f(z); mon.t = t; nothing)
