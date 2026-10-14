@@ -371,7 +371,7 @@ function (store::RAMStorage{T, X, DEG})(out::X,
     # check if `t` is in bounds and disallow extrapolation. Code that calls
     # this interpolator must make sure that no extrapolation is requested
     isbetween(t, timespan(store)...) ||
-        throw(ArgumentError("time $t is out of range $timespan(store)"))
+        throw(ArgumentError("time $t is out of range $(timespan(store))"))
 
     # Obtain the indices of the elements that participate in the interpolation
     idxs = _interp_indices(t, ts, Val(DEG+1), isperiodic(store))

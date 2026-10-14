@@ -74,6 +74,11 @@ for (name, tab, NS) in zip((:CB3R2R2, :CB3R2R3e, :CB3R2R3c),
             # modifier for the location of the interpolation
             _m_ = isadjoint(MODE) == true ? -1 : 1
 
+            # the state on the stored orbit at the first stage. For coupled
+            # vectors the storage fills only the first component of `u` and
+            # returns it, and that one state is passed to all of them
+            ū = store(u, t + tab[:cᴱ, 1]*Δt)
+
             # loop over stages
             @inbounds for k = 1:$NS
                 if k == 1
@@ -86,9 +91,9 @@ for (name, tab, NS) in zip((:CB3R2R2, :CB3R2R3e, :CB3R2R3c),
                 ImcA!(sys, _m_*tab[:aᴵ, k, k]*Δt, z, z)  # get z = (I-cA)⁻¹*(A*y) in place
                 w .= y .+ _m_.*tab[:aᴵ, k, k].*Δt.*z     # w is the temp input, output is y
                 if k > 1 && tab[:cᴱ, k-1] != tab[:cᴱ, k] # avoid double interpolation
-                    store(u, t + tab[:cᴱ, k]*Δt)
+                    ū = store(u, t + tab[:cᴱ, k]*Δt)
                 end
-                sys(t + tab[:cᴱ, k]*Δt, u, w, y)
+                sys(t + tab[:cᴱ, k]*Δt, ū, w, y)
                 x .= x .+ _m_.*tab[:bᴵ, k].*Δt.*z .+ _m_.*tab[:bᴱ, k].*Δt.*y
             end
 

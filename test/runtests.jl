@@ -1,3 +1,4 @@
+import LinearAlgebra
 import LinearAlgebra: Diagonal, norm, dot
 using Statistics
 using Flows
@@ -15,6 +16,7 @@ include("test_integrator.jl")
 include("test_quadrature.jl")
 include("test_monitor.jl")
 include("test_storage.jl")
+include("test_continuous.jl")
 include("test_stagecache.jl")
 include("test_linearisation.jl")
 include("test_analytic_adjoint.jl")

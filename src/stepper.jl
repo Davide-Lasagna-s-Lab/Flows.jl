@@ -11,9 +11,10 @@ constructor flips the sign as needed when `t0 > T`, so backward
 integration shares the same code path.
 
 When `T` is not an exact multiple of `Δt` away from `t0`, the
-iterator is *lossy*: the final pair has a smaller `dt` that ends
-precisely at `T`, ensuring `t + dt ≤ T` (or `t + dt ≥ T` when
-integrating backwards). The `isLossy` flag records this case so
+iterator is *lossy*: the final pair has a smaller `dt`. In all cases
+the final `dt` is `T - t`, so that the last step ends precisely at
+`T`, ensuring `t + dt ≤ T` (or `t + dt ≥ T` when integrating
+backwards). The `isLossy` flag records this case so
 `size` and the last `getindex` can adjust.
 """
 struct Steps{S, R<:AbstractRange{S}} <: AbstractVector{Tuple{S, S}}
@@ -46,9 +47,12 @@ end
 
 @inline function Base.getindex(llr::Steps, i::Integer)
     # The time `t` is the `i`-th element of the underlying range. The
-    # step `dt` is normally `step(llr.rng)` but, in the lossy case, the
-    # last `dt` is shortened so that `t + dt = T` exactly.
+    # step `dt` is normally `step(llr.rng)`, but the last one is `T - t`,
+    # so that `t + dt` lands on `T` exactly. In the lossy case this is the
+    # short final step. In the lossless case it differs from `step(llr.rng)`
+    # by rounding only, but `t + step(llr.rng)` can overshoot `T` by one ulp,
+    # which takes the stage times out of the span of a storage.
     t  = llr.rng[i]
-    dt = i == length(llr) && llr.isLossy ? (llr.T - last(llr.rng)) : step(llr.rng)
+    dt = i == length(llr) ? llr.T - t : step(llr.rng)
     return t, dt
 end

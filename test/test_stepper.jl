@@ -77,3 +77,15 @@ end
         @test t + dt  ≥ 0
     end
 end
+
+@testset "last step ends on T                    " begin
+    # with T an integer number of steps, t + dt of the last step used to
+    # overshoot T by one ulp for some T and n, for instance 2π and 111,
+    # which took the stage times out of the span of a storage
+    for T in (2π, 0.7, 1.5586522107, 12.345678), n in 1:2000
+        for (t0, t1) in ((0.0, T), (T, 0.0), (0.3, 0.3 + T))
+            t, dt = Flows.Steps(t0, t1, abs(t1 - t0) / n)[end]
+            @test t + dt == t1
+        end
+    end
+end
