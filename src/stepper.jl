@@ -10,8 +10,10 @@ The convention is that the user always supplies a positive `Δt`; the
 constructor flips the sign as needed when `t0 > T`, so backward
 integration shares the same code path.
 
-When `T` is not an exact multiple of `Δt` away from `t0`, the
-iterator is *lossy*: the final pair has a smaller `dt`. In all cases
+When `T` is not a whole number of steps `Δt` away from `t0`, the
+iterator is *lossy*: the final pair has a smaller `dt`. A final step
+shorter than a millionth of `Δt` is rounding, and is merged into the
+step before. In all cases
 the final `dt` is `T - t`, so that the last step ends precisely at
 `T`, ensuring `t + dt ≤ T` (or `t + dt ≥ T` when integrating
 backwards). The `isLossy` flag records this case so
@@ -21,7 +23,7 @@ struct Steps{S, R<:AbstractRange{S}} <: AbstractVector{Tuple{S, S}}
         rng::R    # underlying Julia range covering the regular steps
           T::S    # exact final time (may differ from `last(rng)`)
     isLossy::Bool # true when `last(rng) != T` and a short final step is needed
-    Steps(rng::R, T::S, isLossy::Bool) where {S, R} =
+    Steps(rng::R, T::S, isLossy::Bool) where {S, R<:AbstractRange{S}} =
         new{S, R}(rng, T, isLossy)
 end
 
@@ -38,8 +40,14 @@ function Steps(t0::Real, T::Real, dt::Real)
     dt > 0 || throw(ArgumentError("Step must be positive. Got $dt."))
     dt = t0 > T ? -dt : dt
     rng = t0:dt:T
-    last(rng) != T ? Steps(rng, oftype(first(rng), T), true) :
-                     Steps(rng, oftype(first(rng), T), false)
+
+    # the range may stop a few ulps short of `T` when `T - t0` is a whole
+    # number of steps, for instance with `dt = T/n`. A last step shorter than
+    # a millionth of `dt` is such rounding, and is merged into the step
+    # before, which then ends on `T`. A span shorter than that is one step
+    isLossy = length(rng) == 1 || abs(T - last(rng)) > 1e-6 * abs(dt)
+
+    return Steps(rng, oftype(first(rng), T), isLossy)
 end
 
 @inline Base.size(llr::Steps) =

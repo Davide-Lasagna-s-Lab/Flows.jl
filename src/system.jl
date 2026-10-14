@@ -97,6 +97,12 @@ System(g::Coupled{N}, A::Coupled{N}) where {N} = System(g, A, default_dep(N))
 System(g::Coupled{N}, A::Coupled{N}, DEPS::CallDependency{N}) where {N} =
     System{N, DEPS, typeof(g), typeof(A)}(g, A)
 
+# A coupled system of one component matches both the single-component and
+# the coupled methods. The methods for `Coupled{1}` below are more specific
+# than both, and forward to the coupled implementations.
+System(g::Coupled{1}, A::Coupled{1}, DEPS::CallDependency{1}) =
+    System{1, DEPS, typeof(g), typeof(A)}(g, A)
+
 # ----------------------------------------------------------------------------
 # Explicit part: evaluate g
 # ----------------------------------------------------------------------------
@@ -106,7 +112,7 @@ System(g::Coupled{N}, A::Coupled{N}, DEPS::CallDependency{N}) where {N} =
 # state/derivative pairs declared by `DEPS[i]`. This avoids any runtime
 # tuple manipulation in the hot path.
 
-@generated function (sys::System{N, DEPS})(t::Real, z::Coupled{N}, dzdt::Coupled{N}) where {N, DEPS}
+@generated function _call(sys::System{N, DEPS}, t::Real, z::Coupled{N}, dzdt::Coupled{N}) where {N, DEPS}
     expr = quote end
     for i = 1:N
         tup = Expr(:tuple)
@@ -127,10 +133,11 @@ end
 
 # Generated multi-component variational call: same dispatch idea as
 # above, but each component receives the auxiliary `u` first.
-@generated function (sys::System{N})(t::Real,
-                                     u,
-                                     z::Coupled{N},
-                                     dzdt::Coupled{N}) where {N}
+@generated function _call(sys::System{N},
+                                  t::Real,
+                                  u,
+                                  z::Coupled{N},
+                                  dzdt::Coupled{N}) where {N}
     expr = quote return dzdt end
     for i = 1:N
         pushfirst!(expr.args, :(sys.g[$(Val(i))](t, u, z[$i], dzdt[$i])))
@@ -138,10 +145,11 @@ end
     return expr
 end
 
-@generated function (sys::System{N})(t::Real,
-                                     u::Coupled{N},
-                                     z::Coupled{N},
-                                     dzdt::Coupled{N}) where {N}
+@generated function _call(sys::System{N},
+                                  t::Real,
+                                  u::Coupled{N},
+                                  z::Coupled{N},
+                                  dzdt::Coupled{N}) where {N}
     expr = quote return dzdt end
     for i = 1:N
         pushfirst!(expr.args, :(sys.g[$(Val(i))](t, u[$i], z[$i], dzdt[$i])))
@@ -149,15 +157,35 @@ end
     return expr
 end
 
+# The coupled calls, and those of a coupled system of one component.
+(sys::System{N})(t::Real, z::Coupled{N}, dzdt::Coupled{N}) where {N} =
+    _call(sys, t, z, dzdt)
+(sys::System{N})(t::Real, u, z::Coupled{N}, dzdt::Coupled{N}) where {N} =
+    _call(sys, t, u, z, dzdt)
+(sys::System{N})(t::Real, u::Coupled{N}, z::Coupled{N}, dzdt::Coupled{N}) where {N} =
+    _call(sys, t, u, z, dzdt)
+
+# A single-component system called with a state of type `Coupled{1}` matches
+# both the methods above and the single-component ones. It is coupled when
+# `g` is, and calls `g` straight through otherwise.
+(sys::System{1, DEPS, GT})(t::Real, z::Coupled{1}, dzdt::Coupled{1}) where {DEPS, GT} =
+    GT <: Coupled ? _call(sys, t, z, dzdt) : sys.g(t, z, dzdt)
+(sys::System{1, DEPS, GT})(t::Real, u, z::Coupled{1}, dzdt::Coupled{1}) where {DEPS, GT} =
+    GT <: Coupled ? _call(sys, t, u, z, dzdt) : sys.g(t, u, z, dzdt)
+(sys::System{1, DEPS, GT})(t::Real, u::Coupled{1}, z::Coupled{1}, dzdt::Coupled{1}) where {DEPS, GT} =
+    GT <: Coupled ? _call(sys, t, u, z, dzdt) : sys.g(t, u, z, dzdt)
+
+const _System1 = System{1, DEPS, <:Coupled{1}, <:Coupled{1}} where {DEPS}
+
 # ----------------------------------------------------------------------------
 # Implicit part I: action of the linear operator A on z
 # ----------------------------------------------------------------------------
 mul!(out, sys::System{1, DEPS, GT, AT}, z) where {GT, AT, DEPS} =
-    ((AT isa Nothing ? (out .= 0) : mul!(out, sys.A, z)); out)
+    ((AT === Nothing ? (out .= 0) : mul!(out, sys.A, z)); out)
 
-@generated function mul!(out::Coupled{N},
-                         sys::System{N, DEPS, Coupled{N, GT}, Coupled{N, AT}},
-                           z::Coupled{N}) where {N, DEPS, GT, AT}
+@generated function _mul!(out::Coupled{N},
+                          sys::System{N, DEPS, Coupled{N, GT}, Coupled{N, AT}},
+                            z::Coupled{N}) where {N, DEPS, GT, AT}
     return quote
         Base.Cartesian.@nexprs $N i->($(AT.parameters)[i] == Nothing ?
                 (out[i] .= 0) : mul!(out[i], sys.A[i], z[i]))
@@ -174,12 +202,12 @@ end
 # the dynamics is fully explicit and `(I - 0)z = y` ⇒ z = y.
 
 ImcA!(sys::System{1, DEPS, GT, AT}, c::Real, y, z) where {DEPS, GT, AT} =
-    ((AT isa Nothing ? (z .= y) : ImcA!(sys.A, c, y, z)); z)
+    ((AT === Nothing ? (z .= y) : ImcA!(sys.A, c, y, z)); z)
 
-@generated function ImcA!(sys::System{N, DEPS, Coupled{N, GT}, Coupled{N, AT}},
-                            c::Real,
-                            y::Coupled{N},
-                            z::Coupled{N}) where {N, DEPS, GT, AT}
+@generated function _ImcA!(sys::System{N, DEPS, Coupled{N, GT}, Coupled{N, AT}},
+                             c::Real,
+                             y::Coupled{N},
+                             z::Coupled{N}) where {N, DEPS, GT, AT}
     return quote
         Base.Cartesian.@nexprs $N i->($(AT.parameters)[i] == Nothing ?
                 (z[i] .= y[i]) : ImcA!(sys.A[i], c, y[i], z[i]))
@@ -195,15 +223,28 @@ end
 # linear term, the action of `(I - cA)` is the identity.
 
 ImcA_mul!(sys::System{1, DEPS, GT, AT}, c::Real, y, z) where {DEPS, GT, AT} =
-    ((AT isa Nothing ? (z .= y) : ImcA_mul!(sys.A, c, y, z)); z)
+    ((AT === Nothing ? (z .= y) : ImcA_mul!(sys.A, c, y, z)); z)
 
-@generated function ImcA_mul!(sys::System{N, DEPS, Coupled{N, GT}, Coupled{N, AT}},
-                                c::Real,
-                                y::Coupled{N},
-                                z::Coupled{N}) where {N, DEPS, GT, AT}
+@generated function _ImcA_mul!(sys::System{N, DEPS, Coupled{N, GT}, Coupled{N, AT}},
+                                 c::Real,
+                                 y::Coupled{N},
+                                 z::Coupled{N}) where {N, DEPS, GT, AT}
     return quote
         Base.Cartesian.@nexprs $N i->($(AT.parameters)[i] == Nothing ?
                 (z[i] .= y[i]) : ImcA_mul!(sys.A[i], c, y[i], z[i]))
         return z
     end
 end
+
+
+# The coupled implicit parts, and those of a coupled system of one component.
+mul!(out::Coupled{N}, sys::System{N, DEPS, <:Coupled{N}, <:Coupled{N}}, z::Coupled{N}) where {N, DEPS} =
+    _mul!(out, sys, z)
+ImcA!(sys::System{N, DEPS, <:Coupled{N}, <:Coupled{N}}, c::Real, y::Coupled{N}, z::Coupled{N}) where {N, DEPS} =
+    _ImcA!(sys, c, y, z)
+ImcA_mul!(sys::System{N, DEPS, <:Coupled{N}, <:Coupled{N}}, c::Real, y::Coupled{N}, z::Coupled{N}) where {N, DEPS} =
+    _ImcA_mul!(sys, c, y, z)
+
+mul!(out::Coupled{1}, sys::_System1, z::Coupled{1}) = _mul!(out, sys, z)
+ImcA!(sys::_System1, c::Real, y::Coupled{1}, z::Coupled{1}) = _ImcA!(sys, c, y, z)
+ImcA_mul!(sys::_System1, c::Real, y::Coupled{1}, z::Coupled{1}) = _ImcA_mul!(sys, c, y, z)

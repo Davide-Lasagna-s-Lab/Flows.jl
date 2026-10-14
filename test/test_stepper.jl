@@ -89,3 +89,20 @@ end
         end
     end
 end
+
+@testset "whole number of steps                  " begin
+    # with dt = T/n the range can stop a few ulps short of T, which used to
+    # add an extra step of a few ulps, and an extra sample just before T in a
+    # storage. There must be exactly n steps, the last one ending on T
+    for T in (2π, 0.7, 1.5586522107, 2.3059072, 12.345678), n in 1:3000
+        for (t0, t1) in ((0.0, T), (T, 0.0))
+            s = Flows.Steps(t0, t1, T / n)
+            @test length(s) == n
+            @test sum(last, s) ≈ t1 - t0
+        end
+    end
+
+    # a span much shorter than the step is a single step
+    @test length(Flows.Steps(0, 1e-9, 0.1)) == 1
+    @test Flows.Steps(0, 1e-9, 0.1)[1] == (0.0, 1e-9)
+end

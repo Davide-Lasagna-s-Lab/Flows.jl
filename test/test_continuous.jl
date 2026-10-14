@@ -55,3 +55,59 @@
         end
     end
 end
+
+# A coupled system of one component used to be ambiguous between the methods
+# for single-component and for coupled systems. A single tangent vector along
+# the same orbit, and the forward problem y' = -y + cos(t) y of one component.
+@testset "coupled system of one component        " begin
+
+    # ---- the orbit ----
+    T     = 2π
+    store = RAMStorage(zeros(2); period=T, storelast=false, degree=5)
+    rot   = flow((t, x, dxdt) -> (dxdt[1] = -x[2]; dxdt[2] = x[1]; dxdt),
+                 RK4(zeros(2)),
+                 TimeStepConstant(T / 400))
+    rot([1.0, 0.0], (0, T), store)
+
+    # ---- the equations, tangent and forward ----
+    Lex(t, u, y, dydt) = (dydt .= u[1] .* y; dydt)
+    fex(t, y, dydt)    = (dydt .= cos(t) .* y; dydt)
+    Aim = Diagonal([-1.0, -1.0])
+
+    t₀ = 1.0
+    t₁ = 3.3
+    g  = exp(-(t₁ - t₀) + sin(t₁) - sin(t₀))
+
+    for METHOD in (CNRK2, CB3R2R2, CB3R2R3e, CB3R2R3c, CB4R3R4)
+
+        # ---- tangent, along the stored orbit ----
+        ψ = flow(couple(Lex), couple(Aim), CallDependency((1,)),
+                 METHOD(couple(zeros(2)), ContinuousMode(false)),
+                 TimeStepFromStorage(0.01))
+        y = couple([1.0, 2.0])
+        ψ(y, store, (t₀, t₁))
+        @test y[1] ≈ g .* [1.0, 2.0] rtol = 1e-3
+
+        # ---- forward ----
+        ϕ = flow(couple(fex), couple(Aim), METHOD(couple(zeros(2))), TimeStepConstant(0.01))
+        y = couple([1.0, 2.0])
+        ϕ(y, (t₀, t₁))
+        @test y[1] ≈ g .* [1.0, 2.0] rtol = 1e-3
+    end
+
+    # ---- an explicit scheme ----
+    ϕ = flow(couple((t, y, dydt) -> (dydt .= (cos(t) - 1) .* y; dydt)), RK4(couple(zeros(2))), TimeStepConstant(0.01))
+    y = couple([1.0, 2.0])
+    ϕ(y, (t₀, t₁))
+    @test y[1] ≈ g .* [1.0, 2.0] rtol = 1e-8
+end
+
+# An IMEX scheme on a single-component system without a linear part, A = nothing.
+@testset "IMEX scheme without linear part        " begin
+    for METHOD in (CNRK2, CB3R2R3e, CB4R3R4)
+        ϕ = flow((t, y, dydt) -> (dydt .= .-y; dydt), nothing, METHOD(zeros(1)), TimeStepConstant(0.01))
+        y = [1.0]
+        ϕ(y, (0, 1))
+        @test y[1] ≈ exp(-1) rtol = 1e-4
+    end
+end
