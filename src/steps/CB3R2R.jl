@@ -149,9 +149,25 @@ for (name, tab, NS) in zip((:CB3R2R2, :CB3R2R3e, :CB3R2R3c),
             @inbounds for k = reverse(1:$NS)
                 z .= z .+ tab[:bᴵ, k].*Δt.*x
                 y .= y .+ tab[:bᴱ, k].*Δt.*x
-                v .= w
-                sys(t + tab[:cᴱ, k]*Δt, stages[k], y, v)
-                w .= w .+ v
+
+                # `y` carries the factors Δt of the scheme, so `sys` is called
+                # on y/(bᴱ Δt) and its output scaled back: the operator acts
+                # on `y` and a forcing in `sys` gets the weight bᴱ Δt of the
+                # quadrature of the scheme. Where bᴱ = 0, the first stage,
+                # the forcing is `sys` on zero and is taken away
+                c = tab[:bᴱ, k]*Δt
+                if c != 0
+                    y .= y ./ c
+                    sys(t + tab[:cᴱ, k]*Δt, stages[k], y, v)
+                    w .= w .+ c.*v
+                else
+                    sys(t + tab[:cᴱ, k]*Δt, stages[k], y, v)
+                    w .= w .+ v
+                    y .= 0
+                    sys(t + tab[:cᴱ, k]*Δt, stages[k], y, v)
+                    w .= w .- v
+                end
+
                 y .= 0
                 z .= z .+ tab[:aᴵ, k, k].*Δt.*w
                 y .= y .+ w

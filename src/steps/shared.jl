@@ -58,7 +58,10 @@ Mode tag for discretely consistent linearised integration backed by a
 variant. The discrete path replays the exact stage values recorded by
 the primal run, so the linearised solution is the exact derivative
 (or adjoint of the derivative) of the primal at the time-stepping
-level.
+level. A forcing in the adjoint right-hand-side gets, at each stage,
+the weight of that stage in the quadrature of the scheme, so that the
+adjoint is the gradient of an objective integrated with the same
+scheme.
 """
 struct DiscreteMode{ISADJOINT} <: AbstractMode
     DiscreteMode(isadjoint::Bool=false) = new{isadjoint}()

@@ -92,12 +92,16 @@ function step!(method::CNRK2{X, MODE},
     k1, k2, k3, k4, k5 = method.store
 
     if isadjoint(MODE)
+        # `sys` acts on unscaled inputs and its outputs are scaled by Δt/2 after,
+        # so that a forcing in `sys` gets the weight Δt/2 of the quadrature of
+        # the scheme at both stages, as the operator does
         ImcA!(sys, 0.5*Δt, x, k1)
         sys(t + Δt, stages[2], k1, k2)
         k2 .= k2.*Δt./2
         ImcA!(sys, 0.5*Δt, k2, k3)
-        k4 .= Δt./2.0.*k1 .+ Δt.*k3
+        k4 .= k1 .+ 2.0.*k3
         sys(t, stages[1], k4, k5)
+        k5 .= k5.*Δt./2
         k2 .= k1 .+ k3
         ImcA_mul!(sys, -0.5*Δt, k2, k3)
         x .= k3 .+ k5
