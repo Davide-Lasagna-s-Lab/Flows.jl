@@ -11,7 +11,6 @@ sample row from `store`.
 abstract type AbstractLogger end
 
 # TODO: add fallback methods for some common subtypes (norm for arrays, etc.)
-# TODO: change default-`false` behaviour to do nothing instead of printing to devnull
 
 """
     Logger{N, O<:IO, F}(io, fstring, logevery) <: AbstractLogger
@@ -21,6 +20,8 @@ using a precompiled `Printf.Format`. `N` is the number of observed
 quantities per sample (which controls the width of the printed row).
 `logevery` decimates the output: only every `logevery`-th sample is
 emitted, but the header is always printed once before the first row.
+With `io = devnull`, logging is disabled: neither headers nor samples
+are formatted.
 
 Construct via the [`Logger`](@ref) outer constructors below.
 """
@@ -70,6 +71,11 @@ _generate_fstring(::AbstractFloat) = "|  % 5.5e  "
 _generate_fstring(::Integer)       = "|     %6i     "
 _generate_fstring(out::Complex)    = "| % 5.4f%+5.4fi"
 _generate_fstring(::Any)           = "|        ?       "
+
+# A silent logger must skip formatting entirely, including the temporary
+# strings and output vectors that would otherwise be discarded by devnull.
+@inline (::Logger{N, Base.DevNull})() where {N} = nothing
+@inline (::Logger{N, Base.DevNull})(count, store::AbstractStorage) where {N} = nothing
 
 # Print the table header. Each call prints three lines: top border,
 # titles, and a second border.

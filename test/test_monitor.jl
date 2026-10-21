@@ -129,13 +129,13 @@ end
     fun(ϕ, x₀, span, m) = @allocated ϕ(x₀, span, m)
 
     # does not allocate because we do not grow the arrays in the monitor
-    @test_broken fun(ϕ, x₀, (0, 1), m) == 0 # ! allocation tests fail due to logger doing some fancy formatting
+    @test fun(ϕ, x₀, (0, 1), m) == 0
 
     # try resetting and see we still do not allocate
     reset!(m, 101) # ! this sizehint value is just enough to ensure the monitor doesn't have to allocate any new memory
     @test (@allocated reset!(m, 101)) == 0
 
-    @test_broken fun(ϕ, x₀, (0, 1), m) == 0
+    @test fun(ϕ, x₀, (0, 1), m) == 0
 end
 
 @testset "reset monitors                         " begin
@@ -186,6 +186,26 @@ end
 
     # put test here for output to io
     # @test String(take!(io)) == "some complicated string"
+end
+
+# Explicit output streams still receive headers and the selected sample rows.
+@testset "monitor logging cadence" begin
+    io = IOBuffer()
+    m = Monitor([0.0], (t, x) -> x[1]; io=io, logevery=2)
+    push!(m, 0.0, [1.0])
+    push!(m, 1.0, [2.0])
+    push!(m, 2.0, [3.0])
+
+    lines = split(chomp(String(take!(io))), '\n')
+    @test length(lines) == 5
+    @test occursin("Monitor #1", lines[2])
+    @test strip.(split(lines[4], '|'; keepempty=false)) == ["0.000e+00", "1.00000e+00"]
+    @test strip.(split(lines[5], '|'; keepempty=false)) == ["2.000e+00", "3.00000e+00"]
+
+    Flows.set_logevery!(m.log, 1)
+    push!(m, 3.0, [4.0])
+    @test strip.(split(chomp(String(take!(io))), '|'; keepempty=false)) ==
+          ["3.000e+00", "4.00000e+00"]
 end
 
 # A deterministic hook exercises endpoint detection without relying on the

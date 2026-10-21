@@ -95,7 +95,7 @@ to keep entirely in RAM, or if a different element type is required.
   - `sizehint::Int = 0`: pre-allocate capacity in the storage. Useful
     to avoid reallocation when the number of samples is known.
   - `io::IO = devnull`: stream to which the [`Logger`](@ref) prints.
-    Defaults to `devnull` (silent).
+    Defaults to `devnull`, which disables logging and its formatting work.
   - `logevery::Int = 1`: pass-through to [`Logger`](@ref); only every
     `logevery`-th sample is printed.
 
