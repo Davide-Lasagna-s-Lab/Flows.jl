@@ -7,9 +7,9 @@ struct TestFromHook <: AbstractTimeStepFromHook end
 # system
 g(t, x, ẋ) = (ẋ .= -1; ẋ)
 
-@testset "from hook                              " begin
+@testset "from hook ($METHOD)" for METHOD in (RK4, RK8)
     # integration scheme
-    scheme = RK4(zeros(1))
+    scheme = METHOD(zeros(1))
 
     # forward map
     ϕ = flow(g, scheme, TestFromHook())
@@ -32,9 +32,9 @@ g(t, x, ẋ) = (ẋ .= -1; ẋ)
     @test_throws InvalidSpanError ϕ([1.0], (1, 0), reset!(mon))
 end
 
-@testset "constant time step                     " begin
+@testset "constant time step ($METHOD)" for METHOD in (RK4, RK8)
     # integration scheme
-    scheme = RK4(zeros(1))
+    scheme = METHOD(zeros(1))
 
     # forward map
     ϕ = flow(g, scheme, TimeStepConstant(0.5))
