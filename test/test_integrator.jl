@@ -3,7 +3,7 @@
     g(t, x, ẋ) = (ẋ .= .-0.5.*x; ẋ)
     D = Diagonal([-0.5])
 
-    # also define full explicit term for RK4
+    # also define full explicit term for the explicit RK schemes
     gfull(t, x, ẋ) = (ẋ .= .-x; ẋ)
 
     # try on standard vector and on custom type
@@ -11,6 +11,7 @@
 
         # integration scheme
         for (method, err, _g, _D) in [(RK4(     x), 1e-9, gfull, nothing),
+                                      (RK8(     x), 5e-14,gfull, nothing),
                                       (CNRK2(   x), 2e-5, g,     D),
                                       (CB3R2R2( x), 2e-5, g,     D),
                                       (CB3R2R3e(x), 5e-8, g,     D),
@@ -39,7 +40,7 @@
     end
 end
 
-@testset "integrator with shift                  " begin
+@testset "integrator with shift ($METHOD)" for METHOD in (RK4, RK8)
     # make system
     g(t, x, ẋ) = (ẋ .= .-x; ẋ)
 
@@ -47,7 +48,7 @@ end
     x = Float64[1.0]
 
     # forward map
-    ϕ = flow(g, RK4(x), TimeStepConstant(0.01123), (x, s)->x[1] += s)
+    ϕ = flow(g, METHOD(x), TimeStepConstant(0.01123), (x, s)->x[1] += s)
 
     # check relative error, for a few repetitions of the integration
     @test abs(ϕ(copy(x), (0, 1), -exp(-1)))/exp(-1) < 1e-9

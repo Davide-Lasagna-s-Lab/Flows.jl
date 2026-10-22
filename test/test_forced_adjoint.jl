@@ -15,6 +15,7 @@ zquad(t, x, dxdt, q, dqdt) = (dqdt[1] = x[3]; dqdt)
     Δt = 1e-2
 
     for (METHOD, NS, flag, Aop) in ((RK4,      4, 0, nothing),
+                                    (RK8,     11, 0, nothing),
                                     (CNRK2,    2, 1, A),
                                     (CB3R2R2,  3, 1, A),
                                     (CB3R2R3e, 4, 1, A),

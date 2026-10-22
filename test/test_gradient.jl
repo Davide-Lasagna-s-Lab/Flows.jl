@@ -1,4 +1,4 @@
-@testset "tests continuous RK4                   " begin
+@testset "tests continuous ($METHOD)" for METHOD in (RK4, RK8)
     T = 1
     flag = 0
 
@@ -8,7 +8,7 @@
         w0 = zeros(3)
 
         # finite difference
-        method = RK4(x0)
+        method = METHOD(x0)
         alpha = 1e-4
         ϕp = flow(Lorenz(flag, +alpha), method, TimeStepConstant(dt))
         ϕm = flow(Lorenz(flag, -alpha), method, TimeStepConstant(dt))
@@ -27,14 +27,14 @@
         ϕ(copy(x0), (0, T), storage)
 
         # define linear propagator and monitor
-        ψ = flow(LorenzTan(flag, 1), RK4(y0, ContinuousMode(false)), TimeStepFromStorage(dt))
+        ψ = flow(LorenzTan(flag, 1), METHOD(y0, ContinuousMode(false)), TimeStepFromStorage(dt))
         mon = Monitor(y0, (t, x)->x[3])
         ψ(copy(y0), storage, (0, T), reset!(mon))
         Jp_TAN = simps(times(mon), samples(mon))
         # println(times(mon))
 
         # adjoint
-        ψ_A = flow(LorenzAdj(flag, 1), RK4(w0, ContinuousMode(true)), TimeStepFromStorage(dt))
+        ψ_A = flow(LorenzAdj(flag, 1), METHOD(w0, ContinuousMode(true)), TimeStepFromStorage(dt))
         mon = Monitor(w0, (t, x)->x[1])
         ψ_A(copy(w0), storage, (T, 0), reset!(mon))
         Jp_ADJ = simps(reverse(times(mon)), reverse(samples(mon)))
@@ -47,9 +47,12 @@
         @test abs(Jp_ADJ - Jp_TAN)/abs(Jp_TAN)/dt^4 < 2006
         # println(abs(Jp_ADJ - Jp_TAN)/abs(Jp_TAN)/dt^4)
 
-        # the error between linearised and finite difference decays
+        # the error between linearised and finite difference decays. It tends to
+        # 0.348 alpha as dt decreases. At dt = 1e-2 the continuous tangent is
+        # limited by the interpolation of the storage at the stage times, and
+        # RK8, with more stage times, gives 0.506 against 0.462 for RK4.
         # println(abs(Jp_TAN - Jp_FD)/abs(Jp_TAN)/alpha)
-        @test (abs(Jp_TAN - Jp_FD)/abs(Jp_TAN)/alpha) < 0.47
+        @test (abs(Jp_TAN - Jp_FD)/abs(Jp_TAN)/alpha) < (METHOD === RK8 ? 0.52 : 0.47)
         @test (abs(Jp_TAN - Jp_FD)/abs(Jp_TAN)/alpha) > 0.34
     end
 end

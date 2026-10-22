@@ -1,16 +1,16 @@
 # TEST DISCRETE ADJOINT
-@testset "RK4                                    " begin 
+@testset "discrete adjoint ($METHOD)" for (METHOD, NS) in ((RK4, 4), (RK8, 11))
 
     # initial conditions
     x0 = Float64[1, 1, 2]
 
     # methods
-    nl    = RK4(x0)
-    l_t   = RK4(x0, DiscreteMode(false))
-    l_adj = RK4(x0, DiscreteMode(true))
+    nl    = METHOD(x0)
+    l_t   = METHOD(x0, DiscreteMode(false))
+    l_adj = METHOD(x0, DiscreteMode(true))
 
     # stage cache
-    scache = RAMStageCache(4, x0)
+    scache = RAMStageCache(NS, x0)
 
     # system (without diagonal)
     sys_nl    = Flows.System(Lorenz(0),    nothing)
@@ -36,6 +36,11 @@
     a = dot(y0, [4, 5, 7])
     b = dot(q1, [1, 2, 3])
     @test abs(a-b)/abs(a) < 1e-14
+
+    # a step of zero length leaves the adjoint unchanged
+    q2 = Float64[4, 5, 7]
+    Flows.step!(l_adj, sys_l_adj, 0, 0.0, q2, scache.xs[1])
+    @test q2 == [4, 5, 7]
 
     # these take the same time
     # ta = @belapsed Flows.step!($l_adj, $sys_l_adj, 0, 1e-2, $q1, $(scache.xs[1]))

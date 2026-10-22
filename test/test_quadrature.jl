@@ -71,7 +71,7 @@ end
     g(t, x, ẋ) = (ẋ .= 0.5.*x; ẋ)
     A = Diagonal([0.5])
 
-    # also define full explicit term for RK4
+    # also define full explicit term for the explicit RK schemes
     gfull(t, x, ẋ) = (ẋ .= x; ẋ)
 
     # define example quadrature functions
@@ -90,6 +90,7 @@ end
 
     # integration method
     for (method, order, value, _g, _A) in [(RK4(     couple(x, q)), 4, 6.2,  gfull, nothing),
+                                           (RK8(     couple(x, q)), 8, 0.003,gfull, nothing),
                                            (CB3R2R2( couple(x, q)), 2, 19 ,  g,     A),
                                            (CB3R2R3e(couple(x, q)), 3, 5.5,  g,     A),
                                            (CB3R2R3c(couple(x, q)), 3, 5.8,  g,     A),
@@ -98,8 +99,12 @@ end
         # exact values of integral
         exact = [5, exp(5) - exp(0), 5^2/2]
 
+        # Keep the order-eight error above roundoff before scaling by Δt^order.
+        Δts = order == 8 ? [1.0, 0.5, 0.25, 0.125] :
+                          10 .^ range(0, stop=-2.5, length=5)
+
         # error should decrease at certain rate
-        for Δt = 10 .^ range(0, stop=-2.5, length=5)
+        for Δt in Δts
 
             # forward map
             f = flow(couple(_g, quad), couple(_A, nothing), method, TimeStepConstant(Δt))
