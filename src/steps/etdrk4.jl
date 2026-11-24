@@ -75,36 +75,42 @@ etdrk4_coeffs(A, Δt::Real) =
     error("etdrk4_coeffs missing implementation for operator `A` of type $(typeof(A))")
 
 function etdrk4_coeffs(A::LinearAlgebra.Diagonal, Δt::Real)
-    # ---- contour points: z[i] + r[j], r on the unit circle ----
-    M = 32
-    r = exp.(im .* π .* ((1:M) .- 0.5) ./ M)
-    L = Δt .* A.diag
-    z = L .+ transpose(r)
-    e = exp.(z)
-
-    # ---- mean over the contour, real part (the upper half circle is enough) ----
-    avg(f) = vec(real.(sum(f; dims=2)) ./ M)
-
     # ---- coefficients ----
+    L  = Δt .* A.diag
     E  = exp.(L)
     E2 = exp.(L ./ 2)
-    Q  = Δt .* avg((exp.(z ./ 2) .- 1) ./ z)
-    f1 = Δt .* avg((-4 .- z .+ e .* (4 .- 3 .* z .+ z.^2)) ./ z.^3)
-    f2 = Δt .* avg(( 2 .+ z .+ e .* (-2 .+ z))             ./ z.^3)
-    f3 = Δt .* avg((-4 .- 3 .* z .- z.^2 .+ e .* (4 .- z)) ./ z.^3)
+    Q  = Δt .* _contour(z -> (exp(z/2) - 1) / z,                          L)
+    f1 = Δt .* _contour(z -> (-4 - z + exp(z)*(4 - 3z + z^2)) / z^3,      L)
+    f2 = Δt .* _contour(z -> ( 2 + z + exp(z)*(-2 + z)) / z^3,            L)
+    f3 = Δt .* _contour(z -> (-4 - 3z - z^2 + exp(z)*(4 - z)) / z^3,      L)
 
     return (E, E2, Q, f1, f2, f3)
 end
 
+# Mean of the scalar function `f` on the circle of radius 1 around each entry
+# of `L` (Kassam & Trefethen, 2005): 32 points, and the real part of the upper
+# half circle is enough for real `L`. Removes the cancellation of φ-functions
+# near zero. Shared by the ETD schemes.
+function _contour(f, L)
+    M = 32
+    r = exp.(im .* π .* ((1:M) .- 0.5) ./ M)
+    z = L .+ transpose(r)
+    return vec(real.(sum(f.(z); dims=2)) ./ M)
+end
+
+# The hook and the limits at L = 0 of the coefficients of each scheme
+_etd_hook(::ETDRK4, A, Δt)   = etdrk4_coeffs(A, Δt)
+_etd_limits(::ETDRK4, Δt)    = (1, 1, Δt/2, Δt/6, Δt/6, Δt/6)   # those of RK4
+
 # ---------------------------------------------------------------------------- #
 # Update the coefficients when the step or the operator change. Each is a state
 # like x, so that the stages are plain broadcasts. A component without linear
-# part has the limits of the coefficients at L = 0, those of RK4.
-function _etd_update!(method::ETDRK4, A, Δt)
+# part has the limits of the coefficients at L = 0, those of RK4 (or RK2).
+function _etd_update!(method, A, Δt)
     if method.Δt[] != Δt || method.A[] !== A
         comps = A isa Coupled ? A.args : (A,)
         for (i, Ai) in enumerate(comps)
-            cs = Ai === nothing ? (1, 1, Δt/2, Δt/6, Δt/6, Δt/6) : etdrk4_coeffs(Ai, Δt)
+            cs = Ai === nothing ? _etd_limits(method, Δt) : _etd_hook(method, Ai, Δt)
             for (c, v) in zip(method.coef, cs)
                 ci = c isa Coupled ? c[i] : c
                 ci .= v
