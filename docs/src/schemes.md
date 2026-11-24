@@ -125,6 +125,10 @@ The companion to `CB3R2R3e`, with a slightly different coefficient distribution 
 The most accurate IMEX scheme in the package. Six stages, four state-sized buffers in `NormalMode`. Worth the extra cost when fourth-order accuracy is required on a stiff problem or when long-time integrations need a low temporal error budget.
 
 
+### ETDRK4 — exponential time differencing, fourth order
+
+[`ETDRK4`](@ref) (Cox & Matthews, 2002) integrates `u' = A u + g(t, u)` with `A` a `Diagonal` treated exactly, with no step limit from the stiffness of `A`. The coefficients, the φ-functions of `Δt A`, are computed by the contour integrals of Kassam & Trefethen (2005) and cached until `Δt` changes. A component with `A = nothing` is classical RK4. Other operators need a method of [`etdrk4_coeffs`](@ref). `NormalMode` and `ContinuousMode` (tangent and adjoint) are supported; `DiscreteMode` and stage caches are not. Buffers: 6 stages and 6 coefficients (`NormalMode`), 7 stages and 6 coefficients (`ContinuousMode`). Near the stiff limit the observed order is reduced until `|λΔt|` is moderate.
+
 ## Order verification
 
 The package's test suite exercises each scheme against a linear scalar problem with known exact solution, verifying that the leading error term scales as $\Delta t^{p}$ where $p$ is the nominal order. See `test/test_steps.jl` and `test/test_integrator.jl`.

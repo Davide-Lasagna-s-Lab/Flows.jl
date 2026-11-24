@@ -41,6 +41,7 @@ CB3R2R2
 CB3R2R3c
 CB3R2R3e
 CB4R3R4
+ETDRK4
 ```
 
 ### Method base type and integration modes
@@ -58,6 +59,7 @@ Flows.DiscreteMode
 ```@docs
 ImcA!
 Flows.ImcA_mul!
+etdrk4_coeffs
 ```
 
 ## Time stepping

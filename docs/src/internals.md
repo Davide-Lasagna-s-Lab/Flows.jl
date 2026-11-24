@@ -9,7 +9,7 @@ This page documents the **implementation** of `Flows.jl`: data layouts, generate
 ```
 couple.jl  →  tableaux.jl  →  stagecache.jl  →  system.jl  →  storage.jl
    ↓
-steps/shared.jl  →  steps/{rk4,CNRK2,CB3R2R,CB4R3R}.jl
+steps/shared.jl  →  steps/{rk4,CNRK2,CB3R2R,CB4R3R,etdrk4}.jl
    ↓
 timestepping.jl  →  logger.jl  →  monitor.jl  →  storenfromlast.jl  →  imca.jl
    ↓
