@@ -24,7 +24,7 @@ Flow ≅ TimeStepping  ⊗  Method  ⊗  System  ⊗  Symmetry
 | Axis           | Concrete types                                                         | What it decides                                  |
 |----------------|------------------------------------------------------------------------|--------------------------------------------------|
 | Time stepping  | `TimeStepConstant`, `AbstractTimeStepFromHook`, `TimeStepFromCache`, `TimeStepFromStorage` | The sequence of $(t_n, \Delta t_n)$ pairs        |
-| Method         | `RK4`, `CNRK2`, `CB3R2R2`, `CB3R2R3e`, `CB3R2R3c`, `CB4R3R4`           | What one step does, and how many stage buffers it owns  |
+| Method         | `RK4`, `CNRK2`, `CB3R2R2`, `CB3R2R3e`, `CB3R2R3c`, `CB4R3R4`, `ETDRK4`, `ETDRK2`           | What one step does, and how many stage buffers it owns  |
 | System         | `System{N, DEPS, GT, AT}`                                              | Which right-hand-side(s) and optional linear operator(s) are evaluated |
 | Symmetry       | `Nothing`, `SymTransform`, `CoupledTransform`                          | Post-step transformation applied when the user supplies `s` |
 
@@ -155,7 +155,7 @@ A direct correspondence between the abstractions and the source layout:
 | `RAMStorage`, Lagrange interpolation   | `src/storage.jl`                                |
 | `RAMStageCache`                        | `src/stagecache.jl`                             |
 | `AbstractMethod`, mode tags            | `src/steps/shared.jl`                           |
-| Schemes (one file per scheme)          | `src/steps/{rk4,CNRK2,CB3R2R,CB4R3R}.jl`        |
+| Schemes (one file per scheme)          | `src/steps/{rk4,CNRK2,CB3R2R,CB4R3R,etdrk4,etdrk2}.jl`        |
 | `_propagate!`, `Flow` callable surface | `src/integrator.jl`                             |
 | `Monitor`, `Logger`                    | `src/monitor.jl`, `src/logger.jl`               |
 | `StoreNFromLast` specialised monitor   | `src/storenfromlast.jl`                         |

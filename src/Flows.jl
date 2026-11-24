@@ -17,6 +17,8 @@ include("steps/rk8.jl")
 include("steps/CNRK2.jl")
 include("steps/CB3R2R.jl")
 include("steps/CB4R3R.jl")
+include("steps/etdrk4.jl")
+include("steps/etdrk2.jl")
 
 include("timestepping.jl")
 include("logger.jl")
