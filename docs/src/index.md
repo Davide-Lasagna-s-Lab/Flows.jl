@@ -20,7 +20,7 @@ A composable, allocation-aware, Julia-native framework for **flow-style numerica
 |---|---|
 | Callable [`Flows.Flow`](@ref Flows.Flow) objects                  | `F(x, (t₀, T))` advances `x` in place. Composable. |
 | Allocation-free hot path                         | Internal stage buffers are preallocated at scheme construction. |
-| Explicit and IMEX integrators                    | RK4 plus the low-storage Cavaglieri–Bewley IMEX family. |
+| Explicit and IMEX integrators                    | RK4 and RK8, the low-storage Cavaglieri–Bewley IMEX family, and the exponential ETDRK2 and ETDRK4. |
 | Coupled-state support                            | `Coupled` carries `N` heterogeneous components and broadcasts elementwise. |
 | Tangent and adjoint linearisations               | Discretely consistent (stage-cache) and continuous (storage-based). |
 | Symmetry handling                                | Optional in-place symmetry transformation applied after each flow call. |
@@ -53,7 +53,7 @@ The documentation is organised as four layers. Read the first two in order; the 
 | [Mathematical foundations](foundations.md)         | Equation classes, flow operators, linearisations, the IMEX splitting. |
 | [Architecture](architecture.md)                                 | How `Flow`, `System`, `AbstractMethod`, `AbstractTimeStepping`, and the symmetry wrapper fit together. |
 | [States and vector fields](states.md)         | Requirements on user types, and what callables the package expects. |
-| [Integration schemes](schemes.md)                   | RK4, CNRK2, and the Cavaglieri–Bewley low-storage IMEX family. |
+| [Integration schemes](schemes.md)                   | RK4, RK8, CNRK2, the Cavaglieri–Bewley low-storage IMEX family, ETDRK2 and ETDRK4; the schemes by name. |
 | [Time stepping](time-stepping.md)                               | Constant, adaptive, stage-cache-driven, storage-driven. |
 | [Coupled systems](coupled.md)                           | Heterogeneous multi-component states and call dependencies. |
 | [Trajectory data](trajectories.md)                           | Monitors, storages, stage caches, and how they relate. |

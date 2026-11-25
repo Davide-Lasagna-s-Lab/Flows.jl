@@ -36,6 +36,7 @@ CallDependency
 
 ```@docs
 RK4
+RK8
 CNRK2
 CB3R2R2
 CB3R2R3c

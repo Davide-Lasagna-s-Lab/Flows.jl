@@ -156,6 +156,8 @@ A(q, cache)               # marches q through cache.ts in reverse
 
 The adjoint right-hand-side has the same signature as the tangent one, but the schemes invert their internal stage order so that the discrete update is the exact transpose of the primal update at each step.
 
+Every scheme has both discrete modes: `RK4`, `RK8`, `CNRK2`, the `CB` schemes, `ETDRK4` and `ETDRK2`. The adjoint accepts a forcing, weighted by the quadrature of the scheme; for `ETDRK4` and `ETDRK2` the stages come from the stage cache of the normal step, and a step of zero length is the identity.
+
 ### Why this matters
 
 The *discrete-adjoint identity* holds: for any inner product $\langle\cdot,\cdot\rangle$ on $\mathcal{X}$,
@@ -304,7 +306,10 @@ You **never** write a Jacobian explicitly. You write the *action* of the Jacobia
 | `src/steps/shared.jl`        | `NormalMode`, `ContinuousMode`, `DiscreteMode`; `isadjoint(MODE)`.       |
 | `src/steps/rk4.jl`           | Three `step!` overloads for RK4 — normal, continuous, discrete.          |
 | `src/steps/CNRK2.jl`         | Same three for CNRK2.                                                    |
+| `src/steps/rk8.jl`           | The same for RK8, whose discrete adjoint also takes a forcing.           |
 | `src/steps/CB3R2R.jl`        | Three (or four) per scheme for CB3R2R\*.                                  |
+| `src/steps/CB4R3R.jl`        | The same for CB4R3R4, with the discrete tangent and adjoint.             |
+| `src/steps/etdrk4.jl`, `src/steps/etdrk2.jl` | The same for ETDRK4 and ETDRK2: the normal step keeps its stages in a stage cache, the discrete tangent and adjoint replay them. |
 | `src/integrator.jl`          | The three propagation loops driven by `TimeStepFromCache`, `TimeStepFromStorage`, and the constant-step normal loop. |
 | `src/stagecache.jl`          | `RAMStageCache` and its push contract.                                   |
 | `src/storage.jl`             | `RAMStorage` and its Lagrange interpolator.                              |
