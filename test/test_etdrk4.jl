@@ -150,8 +150,9 @@ end
     Flows.step!(ETDRK4(zeros(4)), sys2, 0.0, 0.1, xb, nothing)
     @test xa == xb
 
-    # ---- unsupported ----
-    @test_throws ArgumentError ETDRK4(zeros(4), DiscreteMode(false))
+    # ---- the discrete modes, and an operator with no coefficients ----
+    @test ETDRK4(zeros(4), DiscreteMode(false)) isa ETDRK4
+    @test length(ETDRK4(zeros(4), DiscreteMode(true)).store) == 8
     @test_throws ErrorException Flows.step!(ETDRK4(zeros(2)), Flows.System(_N!, [1.0 0.0; 0.0 1.0]),
                                             0.0, 0.1, zeros(2), nothing)
 end
@@ -193,4 +194,12 @@ end
     sys = Flows.System(couple(J!, J!), couple(A, A), CallDependency((1,), (2,)))
     @test allocs(ETDRK4(couple(zeros(n), zeros(n)), ContinuousMode(false)), sys,
                  couple(copy(u₀), copy(u₀)), store) == 0
+
+    # the normal step with a stage cache allocates the copies of its 4 stages alone, and the
+    # discrete tangent and adjoint over them nothing
+    stages = ntuple(_ -> copy(u₀), 4)
+    @test allocs(ETDRK4(zeros(n)), Flows.System(N!, A), copy(u₀), RAMStageCache(4, zeros(n))) ==
+          4*(@allocated copy(u₀))
+    @test allocs(ETDRK4(zeros(n), DiscreteMode(false)), Flows.System(J!, A), copy(u₀), stages) == 0
+    @test allocs(ETDRK4(zeros(n), DiscreteMode(true)), Flows.System(J!, A), copy(u₀), stages) == 0
 end

@@ -20,7 +20,9 @@ zquad(t, x, dxdt, q, dqdt) = (dqdt[1] = x[3]; dqdt)
                                     (CB3R2R2,  3, 1, A),
                                     (CB3R2R3e, 4, 1, A),
                                     (CB3R2R3c, 4, 1, A),
-                                    (CB4R3R4,  6, 1, A))
+                                    (CB4R3R4,  6, 1, A),
+                                    (ETDRK2,   2, 1, A),
+                                    (ETDRK4,   4, 1, A))
 
         # ---- the objective J(x(0)), with the quadrature coupled to the state ----
         ϕJ = flow(couple(Lorenz(flag), zquad),

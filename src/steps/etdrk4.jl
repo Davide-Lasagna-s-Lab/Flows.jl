@@ -24,7 +24,9 @@ Construct the fourth-order exponential time differencing Runge–Kutta
 scheme of Cox & Matthews (2002) for `u' = A u + g(t, u)`. The linear part
 `A` is integrated exactly, so the scheme is not limited in `Δt` by the
 stiffness of `A`. `x` is a template for the buffers: `6` stages and `6`
-coefficients for [`NormalMode`](@ref), `7` stages for [`ContinuousMode`](@ref).
+coefficients for [`NormalMode`](@ref) and the tangent of [`DiscreteMode`](@ref),
+`7` stages for [`ContinuousMode`](@ref), `8` for the adjoint of
+[`DiscreteMode`](@ref).
 
 `A` is a `LinearAlgebra.Diagonal`, or `nothing` (plain RK4 for that
 component), also as components of a [`Coupled`](@ref) system. Other
@@ -38,16 +40,19 @@ entries of `A` are modified in place.
 [`ContinuousMode`](@ref) is supported, forward and adjoint. The state on the
 stored orbit is interpolated at `t`, `t + Δt/2` and `t + Δt`. In adjoint mode
 the step is `-Δt` and `A` must be the adjoint linear operator.
-[`DiscreteMode`](@ref) is not supported, and the constructor throws an error.
-No stage cache can be used.
+
+[`DiscreteMode`](@ref) is supported, forward and adjoint, over the four stages
+that a normal step keeps in a stage cache, the states at which it evaluates
+`g`: `x`, `a`, `b` and `c`. The tangent is the step with `g` linearised there,
+and the adjoint its transpose, back over the stages, with `A` the adjoint
+linear operator, whose coefficients are those of the transposes. A forcing in
+the adjoint system gets the weights of the quadrature of the scheme, those of
+RK4, `Δt/6`, `Δt/3`, `Δt/3` and `Δt/6`.
 """
 function ETDRK4(x::X, mode::MODE=NormalMode()) where {X, MODE<:AbstractMode}
-    # ---- input checks ----
-    mode isa DiscreteMode &&
-        throw(ArgumentError("ETDRK4 has no DiscreteMode: use NormalMode or ContinuousMode"))
-
     # ---- buffers ----
-    N = mode isa ContinuousMode ? 7 : 6
+    N = mode isa ContinuousMode     ? 7 :
+        mode isa DiscreteMode{true} ? 8 : 6
 
     return ETDRK4{X, MODE}(ntuple(i->similar(x), N),
                            ntuple(i->similar(x), 6))
@@ -123,13 +128,14 @@ function _etd_update!(method, A, Δt)
 end
 
 # ---------------------------------------------------------------------------- #
-# Normal time stepping. No stage cache
+# Normal time stepping, with the four stages kept in a stage cache if one is
+# given: the states x, a, b and c at which g is evaluated, which c holds in y
 function step!(method::ETDRK4{X, NormalMode},
                   sys::System,
                     t::Real,
                    Δt::Real,
                     x::X,
-                    c::Nothing) where {X}
+                    c::C) where {X, C<:Union{Nothing, AbstractStageCache{4, X}}}
     # ---- coefficients and buffers ----
     _etd_update!(method, sys.A, Δt)
     E, E2, Q, f1, f2, f3 = method.coef
@@ -144,6 +150,9 @@ function step!(method::ETDRK4{X, NormalMode},
 
     sys(t + Δt/2, b, Nc)
     y .= E2 .* a .+ Q .* (2 .* Nc .- Na)
+
+    # ---- the stages kept, before b holds Nd and x the step ----
+    _iscache(C) && push!(c, t, Δt, (copy(x), copy(a), copy(b), copy(y)))
 
     sys(t + Δt, y, b)                           # Nd, in b
 
@@ -189,4 +198,107 @@ function step!(method::ETDRK4{X, MODE},
     x .= E .* x .+ f1 .* Na .+ 2 .* f2 .* (Nb .+ Nc) .+ f3 .* b
 
     return nothing
+end
+
+
+# ---------------------------------------------------------------------------- #
+# Forward linearised method over the stages x, a, b and c of a step, which takes
+# x_n and overwrites it with x_{n+1}: the normal step with g linearised at them
+function step!(method::ETDRK4{X, MODE},
+                  sys::System,
+                    t::Real,
+                   Δt::Real,
+                    x::X,
+               stages::NTuple{4, X}) where {X, MODE<:DiscreteMode{false}}
+    # ---- coefficients and buffers ----
+    _etd_update!(method, sys.A, Δt)
+    E, E2, Q, f1, f2, f3 = method.coef
+    Na, Nb, Nc, a, b, y  = method.store
+
+    # ---- stages, each linearised at its stage ----
+    sys(t, stages[1], x, Na)
+    a .= E2 .* x .+ Q .* Na
+
+    sys(t + Δt/2, stages[2], a, Nb)
+    b .= E2 .* x .+ Q .* Nb
+
+    sys(t + Δt/2, stages[3], b, Nc)
+    y .= E2 .* a .+ Q .* (2 .* Nc .- Na)
+
+    sys(t + Δt, stages[4], y, b)                # Nd, in b
+
+    # ---- update ----
+    x .= E .* x .+ f1 .* Na .+ 2 .* f2 .* (Nb .+ Nc) .+ f3 .* b
+
+    return nothing
+end
+
+# ---------------------------------------------------------------------------- #
+# Adjoint linearised method over the stages, which takes x_{n+1} and overwrites
+# it with x_n: the transpose of the step, its lines read backwards, from the
+# update to the first stage, with the transposes of the coefficients, those of
+# the adjoint operator sys.A, and of g at the stages,
+#
+#     x̄ = Eᵀλ,  N̄a = f1ᵀλ,  N̄b = N̄c = 2f2ᵀλ,  N̄d = f3ᵀλ
+#     c̄ = J₄ᵀ N̄d
+#     ā = E2ᵀ c̄,   N̄c += 2Qᵀ c̄,   N̄a -= Qᵀ c̄
+#     b̄ = J₃ᵀ N̄c
+#     x̄ += E2ᵀ b̄,  N̄b += Qᵀ b̄
+#     ā += J₂ᵀ N̄b
+#     x̄ += E2ᵀ ā,  N̄a += Qᵀ ā
+#     x̄ += J₁ᵀ N̄a
+#
+# with λ = x_{n+1} and x_n = x̄. A step of zero length is the identity, and so is
+# its transpose.
+function step!(method::ETDRK4{X, MODE},
+                  sys::System,
+                    t::Real,
+                   Δt::Real,
+                    x::X,
+               stages::NTuple{4, X}) where {X, MODE<:DiscreteMode{true}}
+    Δt == 0 && return nothing
+
+    # ---- coefficients and buffers ----
+    _etd_update!(method, sys.A, Δt)
+    E, E2, Q, f1, f2, f3             = method.coef
+    N̄a, N̄b, N̄c, N̄d, ā, b̄, c̄, v = method.store
+
+    # ---- the transpose of the update, λ in x ----
+    N̄a .= f1 .* x
+    N̄b .= 2 .* f2 .* x
+    N̄c .= N̄b
+    N̄d .= f3 .* x
+
+    # ---- the fourth stage, at c, and the third, at b ----
+    _transposed!(sys, t + Δt, stages[4], N̄d, c̄, Δt/6)
+    ā   .= E2 .* c̄
+    N̄c .+= 2 .* Q .* c̄
+    N̄a .-= Q .* c̄
+
+    _transposed!(sys, t + Δt/2, stages[3], N̄c, b̄, Δt/3)
+    x   .= E .* x .+ E2 .* b̄
+    N̄b .+= Q .* b̄
+
+    # ---- the second, at a, and the first, at x ----
+    _transposed!(sys, t + Δt/2, stages[2], N̄b, v, Δt/3)
+    ā  .+= v
+    x  .+= E2 .* ā
+    N̄a .+= Q .* ā
+
+    _transposed!(sys, t, stages[1], N̄a, v, Δt/6)
+    x .+= v
+
+    return nothing
+end
+
+# The transpose of g at a stage applied to y, written into out, as the adjoint
+# system gives it, with its forcing weighted by w, the weight of the stage in the
+# quadrature of the scheme: `sys` on y/w, its output times w. Overwrites y.
+# Shared by the exponential schemes.
+function _transposed!(sys::System, t::Real, stage, y, out, w::Real)
+    y   .= y ./ w
+    sys(t, stage, y, out)
+    out .= w .* out
+
+    return out
 end

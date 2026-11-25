@@ -55,7 +55,9 @@ end
     for (nl, l_t, l_adj, NS) in [(CB3R2R2( x0),  CB3R2R2(x0, DiscreteMode(false)),  CB3R2R2(x0, DiscreteMode(true)),  3),
                                  (CB3R2R3e(x0), CB3R2R3e(x0, DiscreteMode(false)), CB3R2R3e(x0, DiscreteMode(true)), 4),
                                  (CB3R2R3c(x0), CB3R2R3c(x0, DiscreteMode(false)), CB3R2R3c(x0, DiscreteMode(true)), 4),
-                                 (CB4R3R4(x0),  CB4R3R4(x0, DiscreteMode(false)),  CB4R3R4(x0, DiscreteMode(true)),  6)]
+                                 (CB4R3R4(x0),  CB4R3R4(x0, DiscreteMode(false)),  CB4R3R4(x0, DiscreteMode(true)),  6),
+                                 (ETDRK2(x0),   ETDRK2(x0, DiscreteMode(false)),   ETDRK2(x0, DiscreteMode(true)),   2),
+                                 (ETDRK4(x0),   ETDRK4(x0, DiscreteMode(false)),   ETDRK4(x0, DiscreteMode(true)),   4)]
 
         # stage cache
         scache = RAMStageCache(NS, x0)
@@ -151,7 +153,9 @@ end
                                            ( CB3R2R2(x0),  CB3R2R2(real.(x0), DiscreteMode(false)), 3, Lorenz(1), LorenzTan(1), A),
                                            (CB3R2R3e(x0), CB3R2R3e(real.(x0), DiscreteMode(false)), 4, Lorenz(1), LorenzTan(1), A),
                                            (CB3R2R3c(x0), CB3R2R3c(real.(x0), DiscreteMode(false)), 4, Lorenz(1), LorenzTan(1), A),
-                                           ( CB4R3R4(x0),  CB4R3R4(real.(x0), DiscreteMode(false)), 6, Lorenz(1), LorenzTan(1), A)]
+                                           ( CB4R3R4(x0),  CB4R3R4(real.(x0), DiscreteMode(false)), 6, Lorenz(1), LorenzTan(1), A),
+                                           (  ETDRK2(x0),   ETDRK2(real.(x0), DiscreteMode(false)), 2, Lorenz(1), LorenzTan(1), A),
+                                           (  ETDRK4(x0),   ETDRK4(real.(x0), DiscreteMode(false)), 4, Lorenz(1), LorenzTan(1), A)]
 
         for i = 1:3
             x0 = [9.1419853, 1.648665, 35.21793] + im*[0.0, 0.0, 0.0]
@@ -203,7 +207,9 @@ end
                                                       ( CB3R2R2(x0),  CB3R2R2(x0, DiscreteMode(false)),  CB3R2R2(x0, DiscreteMode(true)), 3, Lorenz(1), LorenzTan(1), LorenzAdj(1), A),
                                                       (CB3R2R3e(x0), CB3R2R3e(x0, DiscreteMode(false)), CB3R2R3e(x0, DiscreteMode(true)), 4, Lorenz(1), LorenzTan(1), LorenzAdj(1), A),
                                                       (CB3R2R3c(x0), CB3R2R3c(x0, DiscreteMode(false)), CB3R2R3c(x0, DiscreteMode(true)), 4, Lorenz(1), LorenzTan(1), LorenzAdj(1), A),
-                                                      ( CB4R3R4(x0),  CB4R3R4(x0, DiscreteMode(false)),  CB4R3R4(x0, DiscreteMode(true)), 6, Lorenz(1), LorenzTan(1), LorenzAdj(1), A)]
+                                                      ( CB4R3R4(x0),  CB4R3R4(x0, DiscreteMode(false)),  CB4R3R4(x0, DiscreteMode(true)), 6, Lorenz(1), LorenzTan(1), LorenzAdj(1), A),
+                                                      (  ETDRK2(x0),   ETDRK2(x0, DiscreteMode(false)),   ETDRK2(x0, DiscreteMode(true)), 2, Lorenz(1), LorenzTan(1), LorenzAdj(1), A),
+                                                      (  ETDRK4(x0),   ETDRK4(x0, DiscreteMode(false)),   ETDRK4(x0, DiscreteMode(true)), 4, Lorenz(1), LorenzTan(1), LorenzAdj(1), A)]
 
 
         # stage cache
