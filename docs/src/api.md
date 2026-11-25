@@ -41,6 +41,8 @@ CB3R2R2
 CB3R2R3c
 CB3R2R3e
 CB4R3R4
+available_schemes
+imex_schemes
 ```
 
 ### Method base type and integration modes
