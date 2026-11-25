@@ -101,7 +101,7 @@ The four schemes are summarised in the table below.
 | [`CB3R2R2`](@ref)       | 2     | 3      | 3R, 2R           | 3                | 4                    | 6                         |
 | [`CB3R2R3e`](@ref)      | 3     | 4      | 3R, 2R           | 3                | 4                    | 6                         |
 | [`CB3R2R3c`](@ref)      | 3     | 4      | 3R, 2R           | 3                | 4                    | 6                         |
-| [`CB4R3R4`](@ref)       | 4     | 6      | 4R, 3R           | 4                | 5                    | (no discrete kernel yet)  |
+| [`CB4R3R4`](@ref)       | 4     | 6      | 4R, 3R           | 4                | 5                    | 9                         |
 
 "3R, 2R" means three registers for the implicit part and two for the explicit part — the explanation of the register accounting is in the Cavaglieri–Bewley paper. From the user's point of view, the takeaway is that the per-step memory cost of CB3R2R* is **three state-sized buffers** plus the auxiliary vectors needed for the chosen mode, regardless of stage count.
 
@@ -122,7 +122,7 @@ The companion to `CB3R2R3e`, with a slightly different coefficient distribution 
 
 ### CB4R3R4 — fourth-order, six-stage
 
-The most accurate IMEX scheme in the package. Six stages, four state-sized buffers in `NormalMode`. Worth the extra cost when fourth-order accuracy is required on a stiff problem or when long-time integrations need a low temporal error budget.
+The most accurate IMEX scheme in the package. Six stages, four state-sized buffers in `NormalMode`. Worth the extra cost when fourth-order accuracy is required on a stiff problem or when long-time integrations need a low temporal error budget. Its discrete adjoint is the transpose of the step in the form of Butcher, back over the six adjoint stages, which it keeps: nine buffers.
 
 
 ### ETDRK4 — exponential time differencing, fourth order
