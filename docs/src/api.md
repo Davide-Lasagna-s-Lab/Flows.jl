@@ -36,11 +36,16 @@ CallDependency
 
 ```@docs
 RK4
+RK8
 CNRK2
 CB3R2R2
 CB3R2R3c
 CB3R2R3e
 CB4R3R4
+ETDRK4
+ETDRK2
+available_schemes
+imex_schemes
 ```
 
 ### Method base type and integration modes
@@ -58,6 +63,8 @@ Flows.DiscreteMode
 ```@docs
 ImcA!
 Flows.ImcA_mul!
+etdrk4_coeffs
+etdrk2_coeffs
 ```
 
 ## Time stepping
