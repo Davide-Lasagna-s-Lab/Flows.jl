@@ -121,6 +121,8 @@ Monitor(x,
         logevery::Int=1) where {S<:AbstractStorage} =
     Monitor(reset!(store, sizehint), f, oneevery, savebetween, skipfirst, skiplast, Logger(io, f(0.0, x), logevery))
 
+# Integration boundaries control the cadence and endpoint filtering here,
+# keeping those details out of the integrator. Ordinary pushes need no flags.
 """
     push!(mon::Monitor, t, x, force=false, first=false, last=false)
 
@@ -129,8 +131,6 @@ endpoint flags or `savebetween`. Set `first=true` at an integration's initial
 sample to restart the counter without clearing storage; set `last=true` at
 its endpoint to apply `skiplast`. Skipped samples still advance the counter.
 """
-# Integration boundaries control the cadence and endpoint filtering here,
-# keeping those details out of the integrator. Ordinary pushes need no flags.
 @inline function Base.push!(mon::Monitor, t::Real, x, force::Bool=false,
                            first::Bool=false, last::Bool=false)
     first && (mon.count = 0)

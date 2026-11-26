@@ -44,13 +44,13 @@ recorded.
 """
 getN(::StoreNFromLast{N}) where {N} = N
 
+# The integrator selects the step to store; boundary and forcing flags are unused.
 """
     push!(mon::StoreNFromLast, t, z, force, first=false, last=false)
 
 Overwrite the stored observation with `f(z)` and its time with `t`.
 The forcing and boundary flags are accepted but ignored.
 """
-# The integrator selects the step to store; boundary and forcing flags are unused.
 Base.push!(mon::StoreNFromLast, t::Real, z, ::Bool,
            ::Bool=false, ::Bool=false) =
     (mon.x .= mon.f(z); mon.t = t; nothing)
