@@ -1,5 +1,4 @@
-import LinearAlgebra
-import LinearAlgebra: Diagonal, norm, dot
+using LinearAlgebra
 using Statistics
 using Flows
 using Test

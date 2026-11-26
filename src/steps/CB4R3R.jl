@@ -1,5 +1,3 @@
-export CB4R3R4
-
 # type definition
 struct CB4R3R4{X, MODE, NX} <: AbstractMethod{X, MODE, 6}
     store::NX

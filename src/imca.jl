@@ -1,7 +1,3 @@
-import LinearAlgebra
-
-export ImcA!
-
 """
     ImcA!(A, c::Real, y, z) -> z
 

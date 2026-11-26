@@ -1,5 +1,3 @@
-export CNRK2
-
 # ---------------------------------------------------------------------------- #
 # Crank-Nicolson/Heun scheme
 struct CNRK2{X, MODE, NX} <: AbstractMethod{X, MODE, 2}

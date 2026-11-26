@@ -1,5 +1,3 @@
-import Printf: @sprintf, Format, format
-
 """
     AbstractLogger
 

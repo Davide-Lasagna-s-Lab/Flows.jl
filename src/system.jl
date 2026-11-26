@@ -1,7 +1,3 @@
-import LinearAlgebra: mul!
-
-export CallDependency
-
 # ============================================================================
 # CallDependency
 # ============================================================================
@@ -44,8 +40,8 @@ a tuple of component indices and must:
 deps = CallDependency((1,), (1, 2), (1, 3))
 ```
 """
-# TODO: accept only a tuple of tuples of integers
 function CallDependency(spec::Tuple...)
+    # TODO: accept only a tuple of tuples of integers
     N = length(spec)
     for el in spec
         m, M = extrema(el)
@@ -180,7 +176,7 @@ const _System1 = System{1, DEPS, <:Coupled{1}, <:Coupled{1}} where {DEPS}
 # ----------------------------------------------------------------------------
 # Implicit part I: action of the linear operator A on z
 # ----------------------------------------------------------------------------
-mul!(out, sys::System{1, DEPS, GT, AT}, z) where {GT, AT, DEPS} =
+LinearAlgebra.mul!(out, sys::System{1, DEPS, GT, AT}, z) where {GT, AT, DEPS} =
     ((AT === Nothing ? (out .= 0) : mul!(out, sys.A, z)); out)
 
 @generated function _mul!(out::Coupled{N},
@@ -238,13 +234,13 @@ end
 
 
 # The coupled implicit parts, and those of a coupled system of one component.
-mul!(out::Coupled{N}, sys::System{N, DEPS, <:Coupled{N}, <:Coupled{N}}, z::Coupled{N}) where {N, DEPS} =
+LinearAlgebra.mul!(out::Coupled{N}, sys::System{N, DEPS, <:Coupled{N}, <:Coupled{N}}, z::Coupled{N}) where {N, DEPS} =
     _mul!(out, sys, z)
 ImcA!(sys::System{N, DEPS, <:Coupled{N}, <:Coupled{N}}, c::Real, y::Coupled{N}, z::Coupled{N}) where {N, DEPS} =
     _ImcA!(sys, c, y, z)
 ImcA_mul!(sys::System{N, DEPS, <:Coupled{N}, <:Coupled{N}}, c::Real, y::Coupled{N}, z::Coupled{N}) where {N, DEPS} =
     _ImcA_mul!(sys, c, y, z)
 
-mul!(out::Coupled{1}, sys::_System1, z::Coupled{1}) = _mul!(out, sys, z)
+LinearAlgebra.mul!(out::Coupled{1}, sys::_System1, z::Coupled{1}) = _mul!(out, sys, z)
 ImcA!(sys::_System1, c::Real, y::Coupled{1}, z::Coupled{1}) = _ImcA!(sys, c, y, z)
 ImcA_mul!(sys::_System1, c::Real, y::Coupled{1}, z::Coupled{1}) = _ImcA_mul!(sys, c, y, z)

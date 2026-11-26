@@ -1,5 +1,3 @@
-import LinearAlgebra: Diagonal
-
 @testset "linear system                          " begin
     # define linear system ẋ = x, but splitting the right hand side
     # into the explicit and implicit parts, to check both.

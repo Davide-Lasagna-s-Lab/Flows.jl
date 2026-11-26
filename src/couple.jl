@@ -1,5 +1,3 @@
-export Coupled, couple, couplecopy
-
 """
     Coupled{N, ARGS<:NTuple{N, Any}} <: AbstractVector{Any}
 

@@ -104,7 +104,7 @@ end
 # Flow-level integration with a non-trivial sym on a single state goes
 # through SymTransform; verify that the result of `_propagate!` is actually
 # transformed by the wrapper.
-@testset "flow sym on single state                " begin
+@testset "flow sym on single state               " begin
     g(t, x, ẋ) = (ẋ .= 0; ẋ)
     F = flow(g, RK4([0.0]), TimeStepConstant(0.1), (x, s) -> (x .+= s; x))
 

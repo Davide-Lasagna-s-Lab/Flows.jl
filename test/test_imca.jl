@@ -24,7 +24,7 @@ end
 # Generic ImcA_mul!: z = (I - c·A) y, using the Diagonal mul! implementation
 # ----------------------------------------------------------------------------
 
-@testset "ImcA_mul! generic action                " begin
+@testset "ImcA_mul! generic action               " begin
     L = Diagonal([0.5, -2.0, 3.0])
     y = [1.0, 2.0, 3.0]
     z = similar(y)
@@ -52,7 +52,7 @@ LinearAlgebra.mul!(out::V, A::ScaledIdentity, x::V) where {V<:AbstractVector} =
 Flows.ImcA!(A::ScaledIdentity, c::Real, y::V, z::V) where {V<:AbstractVector} =
     (z .= y ./ (1 - c * A.α); z)
 
-@testset "ImcA! custom operator                   " begin
+@testset "ImcA! custom operator                  " begin
     A  = ScaledIdentity(2.5)
     y  = [1.0, -3.0, 7.0]
     z  = similar(y)
@@ -70,6 +70,6 @@ end
 
 struct UnimplementedOp end
 
-@testset "ImcA! abstract fallback errors          " begin
+@testset "ImcA! abstract fallback errors         " begin
     @test_throws ErrorException ImcA!(UnimplementedOp(), 0.1, [1.0], [0.0])
 end

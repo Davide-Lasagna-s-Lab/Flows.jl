@@ -1,5 +1,3 @@
-export CB3R2R2, CB3R2R3e, CB3R2R3c
-
 # ---------------------------------------------------------------------------- #
 # Three-register version of [2R] IMEXRK schemes from section 1.2.1 of CB 2015
 
@@ -45,9 +43,9 @@ for (name, tab, NS) in zip((:CB3R2R2, :CB3R2R3e, :CB3R2R3c),
                     y .= x .+ (tab[:aᴵ, k, k-1] .- tab[:bᴵ, k-1]).*Δt.*z .+
                               (tab[:aᴱ, k, k-1] .- tab[:bᴱ, k-1]).*Δt.*y
                 end
-                mul!(z, sys, y)                     # compute z = A*y then
+                mul!(z, sys, y)                             # compute z = A*y then
                 ImcA!(sys, tab[:aᴵ, k, k]*Δt, z, w); z .= w # get w = (I-cA)⁻¹*z
-                w .= y .+ tab[:aᴵ, k, k].*Δt.*z     # w is the temp input, output is y
+                w .= y .+ tab[:aᴵ, k, k].*Δt.*z             # w is the temp input, output is y
                 sys(t + tab[:cᴱ, k]*Δt, w, y); _iscache(C) && (push!(stages, copy(w)))
                 x .= x .+ tab[:bᴵ, k].*Δt.*z .+ tab[:bᴱ, k].*Δt.*y
             end

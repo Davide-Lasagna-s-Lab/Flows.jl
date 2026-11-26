@@ -1,5 +1,3 @@
-export RK4
-
 # ---------------------------------------------------------------------------- #
 # Classical fourth order Runge-Kutta
 struct RK4{X, MODE, NX} <: AbstractMethod{X, MODE, 4}

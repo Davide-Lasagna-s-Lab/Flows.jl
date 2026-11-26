@@ -213,7 +213,7 @@ end
 struct MonitorTestHook <: AbstractTimeStepFromHook end
 (::MonitorTestHook)(g, A, x) = 0.25
 
-@testset "skiplast" begin
+@testset "skiplast                               " begin
     g(t, x, dx) = (dx .= 1; dx)
     x = [0.0]
     for stepping in (TimeStepConstant(0.25), MonitorTestHook())
@@ -288,7 +288,7 @@ struct MonitorTestHook <: AbstractTimeStepFromHook end
     end
 end
 
-@testset "skiplast sampling cadence" begin
+@testset "skiplast sampling cadence              " begin
     g(t, x, dx) = (dx .= 1; dx)
     F = flow(g, RK4([0.0]), TimeStepConstant(0.25))
 
@@ -323,7 +323,7 @@ end
 end
 
 
-@testset "sampling restarts on each integration" begin
+@testset "sampling restarts on each integration  " begin
     g(t, x, dx) = (dx .= 1; dx)
     # Repeating the same span must append the same sampling times. Include
     # skipfirst to check that both endpoint flags apply independently per call.

@@ -1,5 +1,3 @@
-export simps, trapz
-
 """
     simps(xs, ys) -> Real
 

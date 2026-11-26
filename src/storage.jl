@@ -1,5 +1,3 @@
-export AbstractStorage, RAMStorage, times, samples, degree, storelast, timespan, period, isperiodic
-
 # ============================================================================
 # AbstractStorage
 # ============================================================================

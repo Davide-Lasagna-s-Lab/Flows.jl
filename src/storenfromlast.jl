@@ -1,5 +1,3 @@
-export StoreNFromLast
-
 """
     StoreNFromLast{N, X, F} <: AbstractMonitor{Float64, X}
 
